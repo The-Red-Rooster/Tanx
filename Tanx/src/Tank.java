@@ -9,9 +9,11 @@ public class Tank extends PhysicsEntity {
   //Constants
   public static final int INIT_TANK_HEALTH = 100;
   public static final float TANK_MOVE_SPEED = .2f;
-  public static final float ACCELERATION = .05f;
+  public static final float ACCELERATION = .5f;
   public static final float JUMP_SPEED = .5f;
-
+  public static final float TANK_WIDTH = 64f;
+  public static final float TANK_HEIGHT = 32f;
+  
   //Class Variables
   private int health;
   private Cannon cannon;
@@ -27,7 +29,7 @@ public class Tank extends PhysicsEntity {
     setHealth(INIT_TANK_HEALTH);
     cannon = new Cannon(this.getX(), this.getY());
     myPlayer = player;
-    this.addShape(new ConvexPolygon(64f, 32f), c, Color.red);
+    this.addShape(new ConvexPolygon(TANK_WIDTH, TANK_HEIGHT), c, Color.red);
   }
 
   public Projectile fire(int power){return cannon.fire(power);}
@@ -49,6 +51,32 @@ public class Tank extends PhysicsEntity {
   public void update(int delta){
     cannon.setX(this.getX());
     cannon.setY(this.getY());
+  }
+  
+  public void update(int delta, Terrain t) {
+	  if(onGround) {
+		  rotateToSlope(t);
+	  }
+	  
+	  //System.out.println("tank: " + this + " onGround: " + onGround);
+  }
+  
+  private void rotateToSlope(Terrain t) {
+	  this.setRotation(0);
+	  int leftDistance = t.castRay(new Vector(this.getX() - TANK_WIDTH/2, this.getY() + TANK_HEIGHT/2), Terrain.Direction.DOWN);
+	 //int midDistance = t.castRay(new Vector(this.getX(), this.getCoarseGrainedMaxY()), Terrain.Direction.DOWN);
+	  int rightDistance = t.castRay(new Vector(this.getX() + TANK_WIDTH/2, this.getY() + TANK_HEIGHT/2), Terrain.Direction.DOWN);
+	  
+	  int sign = 0;
+	  
+	  if(leftDistance > rightDistance) sign = -1;
+	  if(leftDistance < rightDistance) sign = 1;
+	  
+	  int y = Math.abs(leftDistance - rightDistance);
+	  this.rotate(sign * Math.toDegrees(Math.tan((double)y/(double)this.getCoarseGrainedWidth())));
+	  
+	  cannon.updateOffset(this.getRotation());
+	  
   }
   
   @Override

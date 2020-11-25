@@ -18,6 +18,13 @@ public class Terrain extends PhysicsEntity {
 		NORMAL
 	}
 	
+	enum Direction{
+		UP,
+		DOWN,
+		LEFT,
+		RIGHT
+	}
+	
 	public Terrain(int w, int h, TerrainType t) {	//create a new terrain object completely of the specified type
 		super(w/2, h/2, 0, new Vector(0,0));
 		width = w;
@@ -211,8 +218,35 @@ public class Terrain extends PhysicsEntity {
 		
 		setTerrainInLineAuxillary(p1, p, t);
 		setTerrainInLineAuxillary(p, p2, t);
+	}
+	
+	public int castRay(Vector p, Direction d) {
+		int x = (int)p.getX();
+		int y = (int)p.getY();
+		int length = 0;
 		
+		if(x < 0 || x >= width || y < 0 || y >= height) return -1;
 		
+		while(mask[x][y] == TerrainType.OPEN) {
+			length++;
+			switch(d) {
+			case UP:
+				y--;
+				break;
+			case DOWN:
+				y++;
+				break;
+			case LEFT:
+				x--;
+				break;
+			case RIGHT:
+				x++;
+				break;
+			}
+			if(x < 0 || x >= width || y < 0 || y >= height) return -1;
+		}
+			
+		return length;
 	}
 	
 	/*private void printMask() {	//this function is used for debugging, NEVER call it in practice, it prints info about each individual pixel

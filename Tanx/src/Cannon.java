@@ -17,6 +17,7 @@ public class Cannon extends Entity {
   private float power;
   private float fireOffset;
   private float rotationFactor;
+  private float rotationOffset;
 
   public Cannon(final float x, final float y){
     super(x,y);
@@ -55,9 +56,14 @@ public class Cannon extends Entity {
         rotationFactor = -MAX_ROTATION_FACTOR;
       }
     }
-    setRotation(rotationFactor);
+    setRotation(rotationFactor + rotationOffset);
   }
 
+  public void updateOffset(double tankRotation) {
+	  rotationOffset = (float)tankRotation;
+	  setRotation(rotationFactor + rotationOffset);
+  }
+  
   //input:float from 0 to 1 determing power strength
   //output: projectile of the cannon's type on firing
   //onError: outputs null projectile

@@ -74,9 +74,7 @@ public class PlayingState extends BasicGameState {
     
     // Example use case. Probably not complete.
     PE.registerCollisionHandler(Tank.class, Terrain.class, (tank, terrain, c) -> {
-      if (tank.getY() < terrain.getY()) {
         tank.setOnGround(true);
-      }
     });
     
     PE.registerCollisionHandler(Projectile.class, PhysicsEntity.class, (projectile, obstacle, c) -> {
@@ -131,6 +129,8 @@ public class PlayingState extends BasicGameState {
       } else if (input.isKeyDown(Input.KEY_Q)){
         currentTank.rotate(Direction.LEFT, delta);
       }
+      
+      
       if (input.isKeyPressed(Input.KEY_SPACE)){
         activeProjectile = currentTank.fire(1);
         PE.addPhysicsEntity(activeProjectile);

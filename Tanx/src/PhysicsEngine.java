@@ -29,7 +29,7 @@ class TypeMatchingHandler<A extends PhysicsEntity, B extends PhysicsEntity> impl
 
 public class PhysicsEngine {
 	
-	static public float GRAV_CONSTANT = 1f;
+	static public float GRAV_CONSTANT = .5f;
 	static public float NORMAL_FRICTION = .1f;
 	
 	
@@ -78,7 +78,7 @@ public class PhysicsEngine {
 
 
 		translateEntity(e, delta);	//move the object
-    e.update(delta, world.terrain);
+		e.update(delta, world.terrain);
 	}
 	
 	private void applyCollisionDetection(int delta) {
