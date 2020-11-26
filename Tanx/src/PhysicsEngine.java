@@ -122,8 +122,33 @@ public class PhysicsEngine {
 	}
 	
 	private void resolveTerrainCollision(int delta, PhysicsEntity e, Terrain t) {
-		e.setY(e.getY() - 1);
-		checkTerrainCollision(delta, e);
+		
+		boolean flag = false;
+		Shape s = e.getShapes().getFirst();
+		
+		if(e.getVelocity().getX() > 0) {	//going right
+			//check terrain to the right
+			if(!world.terrain.checkLineCollision(new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() - s.getHeight()/2), new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() + s.getHeight()/4))) {
+				flag = true;
+			}
+		} else if(e.getVelocity().getX() < 0) {	//going left
+			//check terrain to the left
+			if(!world.terrain.checkLineCollision(new Vector(e.getX() - s.getWidth()/2 - 1, e.getY() - s.getHeight()/2), new Vector(e.getX() - s.getWidth()/2 - 1, e.getY() + s.getHeight()/4))) {
+				flag = true;
+			}
+		} else {	//standing still (horizontally)
+			flag = true;
+		}
+		
+		if(flag) {	//setY up until no longer colliding
+			while(world.terrain.checkRectangularCollision(new Vector(e.getX() - s.getWidth()/2, e.getY() - s.getHeight()/2 ), new Vector(e.getX() + s.getWidth()/2, e.getY() + s.getHeight()/2))) {
+				e.setY(e.getY() - 1);
+			}
+		} else {
+			resolveCollision(delta, e, world.terrain, null);
+		}
+		
+		
 	}
 	
 	private void checkCollision(int delta, PhysicsEntity a, PhysicsEntity b) {
@@ -140,8 +165,8 @@ public class PhysicsEngine {
 	  float f = a.getVelocity().length() / b.getVelocity().length();
 	  a.translate(a.getVelocity().negate().scale(delta));
 	  b.translate(b.getVelocity().negate().scale(delta));
-	  a.setVelocity(new Vector(a.getVelocity().getX(),0));
-	  b.setVelocity(new Vector(b.getVelocity().getX(),0));
+	  a.setVelocity(new Vector(0,0));
+	  b.setVelocity(new Vector(0,0));
 //	  System.out.println("After Resolving collision between " + a.getPosition() + " and " + b.getPosition() + " c: " + c.getMinPenetration().length());
 	}
 	
