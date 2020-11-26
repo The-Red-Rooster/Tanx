@@ -74,7 +74,26 @@ public class PlayingState extends BasicGameState {
     
     // Example use case. Probably not complete.
     PE.registerCollisionHandler(Tank.class, Terrain.class, (tank, terrain, c) -> {
-        tank.setOnGround(true);
+        tank.setOnGround(true);	//if we've collided with the ground, we should set onGround true
+        
+        tank.setVelocity(tank.getVelocity().scale(.99f));
+        
+       /* float v = tank.getVelocity().getX();
+        if(v > 0) { //if we have rightward velocity but there is a slope in the way, move us up
+        	if(terrain.checkLineCollision(
+        			new Vector(tank.getX() + Tank.TANK_WIDTH/2 + 1, tank.getY() - Tank.TANK_HEIGHT/2),
+        			new Vector(tank.getX() + Tank.TANK_WIDTH/2 + 1, tank.getY() + Tank.TANK_HEIGHT/4))) {
+        		tank.setY(tank.getY() - 10);
+        	}
+        }
+        
+        if(v < 0) {	//if we have leftward velocity but there is a slope in the way, move us up
+        	if(terrain.checkLineCollision(
+        			new Vector(tank.getX() - Tank.TANK_WIDTH/2 - 1, tank.getY() - Tank.TANK_HEIGHT/2),
+        			new Vector(tank.getX() - Tank.TANK_WIDTH/2 - 1, tank.getY() + Tank.TANK_HEIGHT/4))){
+        		tank.setY(tank.getY() - 10);
+        	}
+        }*/
     });
     
     PE.registerCollisionHandler(Projectile.class, PhysicsEntity.class, (projectile, obstacle, c) -> {
@@ -117,36 +136,47 @@ public class PlayingState extends BasicGameState {
 			int delta) throws SlickException {
 		Input input = container.getInput();
 
-    turnTimer -= delta;
+		turnTimer -= delta;
 		if (state == phase.MOVEFIRE){
-		  Tank currentTank = players.get(pIndex).getTank();
-		  if (turnTimer <= 0){
-		    changePlayer();
-      }
+			Tank currentTank = players.get(pIndex).getTank();
 
-      if (input.isKeyDown(Input.KEY_E)){
-        currentTank.rotate(Direction.RIGHT, delta);
-      } else if (input.isKeyDown(Input.KEY_Q)){
-        currentTank.rotate(Direction.LEFT, delta);
-      }
+			if (input.isKeyDown(Input.KEY_E)){
+				currentTank.rotate(Direction.RIGHT, delta);
+			} else if (input.isKeyDown(Input.KEY_Q)){
+				currentTank.rotate(Direction.LEFT, delta);
+			}
+      
+			if(input.isKeyDown(Input.KEY_A)) {
+				currentTank.move(Direction.LEFT);
+			}else if(input.isKeyDown(Input.KEY_D)) {
+				currentTank.move(Direction.RIGHT);
+			} else {
+				currentTank.move(Direction.NONE);
+			}
       
       
-      if (input.isKeyPressed(Input.KEY_SPACE)){
-        activeProjectile = currentTank.fire(1);
-        PE.addPhysicsEntity(activeProjectile);
-        state = phase.FIRING;
-        turnTimer = FIRING_TIMEOUT;
-      }
-    } else if(state == phase.FIRING){
-		  if (turnTimer <= 0) { changePlayer(); }
-    }
+			if (input.isKeyPressed(Input.KEY_SPACE)){
+				activeProjectile = currentTank.fire(1);
+				PE.addPhysicsEntity(activeProjectile);
+				state = phase.FIRING;
+				turnTimer = FIRING_TIMEOUT;
+			}
+			
+			if (turnTimer <= 0){
+				changePlayer();
+			}
+			
+		} else if(state == phase.FIRING){
+			if (turnTimer <= 0) { changePlayer(); }
+		}
 
 		for(Player p: players){p.update(delta);}
-    PE.update(delta);
+		PE.update(delta);
 		controlCamera(delta, input);
 	}
 
   private void changePlayer() {
+	players.get(pIndex).getTank().move(Direction.NONE);
     activeProjectile = null;
     state = phase.MOVEFIRE;
     turnTimer = TURNLENGTH;

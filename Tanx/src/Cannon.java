@@ -70,7 +70,7 @@ public class Cannon extends Entity {
   public Projectile fire(float p){
     if (power < 0) power = 0;
     float launchPower = p*power;
-    double angle = Math.toRadians(rotationFactor + ANGLE_CORRECTION);
+    double angle = Math.toRadians(rotationFactor + rotationOffset + ANGLE_CORRECTION);
     Vector projVelocity = new Vector((float)Math.cos(angle), (float)Math.sin(angle));
     projVelocity = projVelocity.setLength(launchPower);
     float x = getX() + fireOffset*(float)Math.cos(angle);

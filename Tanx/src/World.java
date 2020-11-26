@@ -26,6 +26,7 @@ public class World {
     int height = (int)worldBounds.getHeight();
     BitmapGenerator bg = new BitmapGenerator(width, height);
     terrain = new Terrain(width, height, bg.generateRandomSineMap());
+    terrain.setTerrainInRectangle(new Vector(640f, 200f), new Vector(1280f, 1000f), Terrain.TerrainType.NORMAL);
 	}
 }
 

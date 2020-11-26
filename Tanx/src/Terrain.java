@@ -123,6 +123,8 @@ public class Terrain extends PhysicsEntity {
 		int x2 = (int)p2.getX();
 		int y2 = (int)p2.getY();
 		
+		if(x1 < 0 || x1 >= width || y1 < 0 || y1 >= height) return false; //dont check out of world
+		if(x2 < 0 || x2 >= width || y2 < 0 || y2 >= height) return false;
 		
 		if(mask[x1][y1] != TerrainType.OPEN) return true;	//if either endpoint is terrain, return true
 		if(mask[x2][y2] != TerrainType.OPEN) return true;

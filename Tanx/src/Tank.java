@@ -3,7 +3,7 @@ import jig.Vector;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
 
-enum Direction {LEFT, RIGHT};
+enum Direction {LEFT, RIGHT, NONE};
 
 public class Tank extends PhysicsEntity {
   //Constants
@@ -22,7 +22,7 @@ public class Tank extends PhysicsEntity {
 
 
   public Tank(final float x, final float y, Color c, Player player){
-    super(x,y, 0, new Vector(100, 100));
+    super(x,y, 0, new Vector(TANK_MOVE_SPEED, 100));
     setVelocity(new Vector(0, 0));
     setAcceleration(new Vector(0,0));
 
@@ -32,14 +32,19 @@ public class Tank extends PhysicsEntity {
     this.addShape(new ConvexPolygon(TANK_WIDTH, TANK_HEIGHT), c, Color.red);
   }
 
-  public Projectile fire(int power){return cannon.fire(power);}
+  public Projectile fire(int power){
+	  this.move(Direction.NONE);
+	  return cannon.fire(power);
+  }
   public void rotate(Direction direction, int delta){cannon.rotate(direction, delta);}
 
   public void move(Direction direction){
     if (direction == Direction.LEFT){
       setAcceleration(new Vector(-ACCELERATION, getAcceleration().getY()));
-    } else {
+    } else if(direction == Direction.RIGHT){
       setAcceleration(new Vector(ACCELERATION, getAcceleration().getY()));
+    } else {
+    	setAcceleration(new Vector(0, getAcceleration().getY()));
     }
   }
 
@@ -58,7 +63,7 @@ public class Tank extends PhysicsEntity {
 		  rotateToSlope(t);
 	  }
 	  
-	  //System.out.println("tank: " + this + " onGround: " + onGround);
+	  System.out.println("tank: " + this + " velocity: " + this.getVelocity() + " acc: " + this.getAcceleration());
   }
   
   private void rotateToSlope(Terrain t) {

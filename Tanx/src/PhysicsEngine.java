@@ -1,6 +1,8 @@
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 import jig.Collision;
+import jig.Shape;
 import jig.Vector;
 
 interface CollisionHandler<A extends PhysicsEntity, B extends PhysicsEntity> {
@@ -95,12 +97,33 @@ public class PhysicsEngine {
   }
 	
 	private void checkTerrainCollision(int delta, PhysicsEntity entity) {
-	  float radius = entity.getCoarseGrainedRadius();
-	  Vector position = entity.getPosition();
-	  if (world.terrain.checkCircularCollision(position, radius)) {
-	    collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
-	    resolveCollision(delta, entity, world.terrain, null);
-	  }
+		LinkedList<Shape> shapes = entity.getGloballyTransformedShapes();
+		Vector position = entity.getPosition();
+		float radius = entity.getCoarseGrainedRadius();
+		boolean flag = false;
+		for(int i = 0; i < shapes.size(); i++) {
+			Shape s = shapes.get(i);
+			switch(s.getPointCount()) {
+			case 4:
+				if(world.terrain.checkRectangularCollision(new Vector(entity.getX() - s.getWidth()/2, entity.getY() - s.getHeight()/2 ), new Vector(entity.getX() + s.getWidth()/2, entity.getY() + s.getHeight()/2))) {
+					flag = true;
+				}
+				break;
+			default:
+				if(world.terrain.checkCircularCollision(position, radius)) {
+					flag = true;
+				}
+			}
+		}
+		if (flag) {
+			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
+			resolveTerrainCollision(delta, entity, world.terrain);
+		}
+	}
+	
+	private void resolveTerrainCollision(int delta, PhysicsEntity e, Terrain t) {
+		e.setY(e.getY() - 1);
+		checkTerrainCollision(delta, e);
 	}
 	
 	private void checkCollision(int delta, PhysicsEntity a, PhysicsEntity b) {
@@ -117,8 +140,8 @@ public class PhysicsEngine {
 	  float f = a.getVelocity().length() / b.getVelocity().length();
 	  a.translate(a.getVelocity().negate().scale(delta));
 	  b.translate(b.getVelocity().negate().scale(delta));
-	  a.setVelocity(new Vector(0,0));
-	  b.setVelocity(new Vector(0,0));
+	  a.setVelocity(new Vector(a.getVelocity().getX(),0));
+	  b.setVelocity(new Vector(b.getVelocity().getX(),0));
 //	  System.out.println("After Resolving collision between " + a.getPosition() + " and " + b.getPosition() + " c: " + c.getMinPenetration().length());
 	}
 	
