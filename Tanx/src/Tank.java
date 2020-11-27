@@ -2,6 +2,8 @@ import jig.ConvexPolygon;
 import jig.Vector;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.geom.Shape;
+import org.newdawn.slick.geom.Transform;
 
 enum Direction {LEFT, RIGHT, NONE};
 
@@ -59,26 +61,61 @@ public class Tank extends PhysicsEntity {
   }
   
   public void update(int delta, Terrain t) {
-	  if(onGround) {
-		  rotateToSlope(t);
-	  }
-	  
-	  System.out.println("tank: " + this + " velocity: " + this.getVelocity() + " acc: " + this.getAcceleration());
+	 
   }
   
-  private void rotateToSlope(Terrain t) {
+  public void rotateToSlope(Terrain t) {
 	  this.setRotation(0);
-	  int leftDistance = t.castRay(new Vector(this.getX() - TANK_WIDTH/2, this.getY() + TANK_HEIGHT/2), Terrain.Direction.DOWN);
-	 //int midDistance = t.castRay(new Vector(this.getX(), this.getCoarseGrainedMaxY()), Terrain.Direction.DOWN);
-	  int rightDistance = t.castRay(new Vector(this.getX() + TANK_WIDTH/2, this.getY() + TANK_HEIGHT/2), Terrain.Direction.DOWN);
-	  
+	  int leftYDistance = 99999;
+	  int rightYDistance = 99999;
+	  int leftXDistance = 0;
+	  int rightXDistance = 0;
+	  double x;
+	  double y;
 	  int sign = 0;
 	  
-	  if(leftDistance > rightDistance) sign = -1;
-	  if(leftDistance < rightDistance) sign = 1;
 	  
-	  int y = Math.abs(leftDistance - rightDistance);
-	  this.rotate(sign * Math.toDegrees(Math.tan((double)y/(double)this.getCoarseGrainedWidth())));
+	  
+	  for(int i = 0; i < TANK_WIDTH/2; i++) {
+		  int d = t.castRay(new Vector(this.getX() - i, this.getY()+TANK_HEIGHT/2), Terrain.Direction.DOWN);
+		  System.out.println("left d: " + d);
+		  if(leftYDistance > d) {
+			  System.out.println("foo");
+			  leftYDistance = d;
+			  leftXDistance = i;
+		  }
+		  d = t.castRay(new Vector(this.getX() + i, this.getY()+TANK_HEIGHT/2), Terrain.Direction.DOWN);
+		  System.out.println("right d: " + d);
+		  if(rightYDistance > d) {
+			  System.out.println("bar");
+			  rightYDistance = d;
+			  rightXDistance = i;
+		  }
+	  }
+	  System.out.println("left: <" + leftXDistance + ", " + leftYDistance + "> right: <" + rightXDistance + ", " + rightYDistance + ">");
+	  
+	  if(leftYDistance > rightYDistance) {
+		  sign = -1;
+	  }
+	  if(leftYDistance < rightYDistance) {
+		  sign = 1;
+	  }
+	  
+	  x = leftXDistance + rightXDistance;
+	  
+	  y = Math.abs(leftYDistance - rightYDistance);
+	  
+	  System.out.println("x: " + x);
+	  System.out.println("y:" + y);
+	  
+	  if(x == 0) {
+		  this.rotate(0);
+	  }else {
+		  this.rotate(sign * Math.toDegrees(Math.atan(y/x)));
+		  System.out.println("rotation: " + sign * Math.toDegrees(Math.atan(y/x)));
+	  }
+	  
+	  
 	  
 	  cannon.updateOffset(this.getRotation());
 	  

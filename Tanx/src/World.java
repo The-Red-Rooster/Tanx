@@ -22,15 +22,18 @@ public class World {
 	}
 	
 	public void loadLevel(String name) {
-	  int width = (int)worldBounds.getWidth();
-    int height = (int)worldBounds.getHeight();
-    BitmapGenerator bg = new BitmapGenerator(width, height);
-    terrain = new Terrain(width, height, bg.generateRandomSineMap());
-    terrain.setTerrainInRectangle(new Vector(640f, 200f), new Vector(1280f, 1000f), Terrain.TerrainType.NORMAL);
+		int width = (int)worldBounds.getWidth();
+		int height = (int)worldBounds.getHeight();
+		BitmapGenerator bg = new BitmapGenerator(width, height);
+		terrain = new Terrain(width, height, bg.generateRandomSineMap());
+		//terrain.setTerrainInRectangle(new Vector(600f, 200f), new Vector(1280f, 1000f), Terrain.TerrainType.NORMAL);
+		terrain.setTerrainInCircle(new Vector(1280f, 600f), 500f, Terrain.TerrainType.OPEN);
+		terrain.setTerrainInCircle(new Vector(0, 600f), 500f, Terrain.TerrainType.OPEN);
+		
 	}
 }
 
-/// Manages coodinate space transformations between tile coordinates and world locations.
+/// Manages coordinate space transformations between tile coordinates and world locations.
 /// Tile coordinates are integer x and y. They can be passed together using the `Coordinate` class.
 /// World locations are the float x and y of the location on screen before any camera calculation is made.
 /// They can be passed together using the `Vector` class.

@@ -97,7 +97,7 @@ public class PhysicsEngine {
   }
 	
 	private void checkTerrainCollision(int delta, PhysicsEntity entity) {
-		LinkedList<Shape> shapes = entity.getGloballyTransformedShapes();
+		LinkedList<Shape> shapes = entity.getShapes();
 		Vector position = entity.getPosition();
 		float radius = entity.getCoarseGrainedRadius();
 		boolean flag = false;
@@ -116,29 +116,27 @@ public class PhysicsEngine {
 			}
 		}
 		if (flag) {
-			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
 			resolveTerrainCollision(delta, entity, world.terrain);
+			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
 		}
 	}
 	
 	private void resolveTerrainCollision(int delta, PhysicsEntity e, Terrain t) {
 		
-		boolean flag = false;
+		boolean flag = true;
 		Shape s = e.getShapes().getFirst();
 		
 		if(e.getVelocity().getX() > 0) {	//going right
 			//check terrain to the right
-			if(!world.terrain.checkLineCollision(new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() - s.getHeight()/2), new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() + s.getHeight()/4))) {
-				flag = true;
+			if(world.terrain.checkLineCollision(new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() - s.getHeight()/2), new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() + s.getHeight()/4))) {
+				flag = false;
 			}
 		} else if(e.getVelocity().getX() < 0) {	//going left
 			//check terrain to the left
-			if(!world.terrain.checkLineCollision(new Vector(e.getX() - s.getWidth()/2 - 1, e.getY() - s.getHeight()/2), new Vector(e.getX() - s.getWidth()/2 - 1, e.getY() + s.getHeight()/4))) {
-				flag = true;
+			if(world.terrain.checkLineCollision(new Vector(e.getX() - s.getWidth()/2 - 1, e.getY() - s.getHeight()/2), new Vector(e.getX() - s.getWidth()/2 - 1, e.getY()  + s.getHeight()/4))) {
+				flag = false;
 			}
-		} else {	//standing still (horizontally)
-			flag = true;
-		}
+		} 
 		
 		if(flag) {	//setY up until no longer colliding
 			while(world.terrain.checkRectangularCollision(new Vector(e.getX() - s.getWidth()/2, e.getY() - s.getHeight()/2 ), new Vector(e.getX() + s.getWidth()/2, e.getY() + s.getHeight()/2))) {

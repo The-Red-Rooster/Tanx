@@ -53,11 +53,11 @@ public class PlayingState extends BasicGameState {
 
     //setup players test-THIS SHOULD BE SETUP IN A LEVEL CONFIG
     players.add(new Player(Color.blue, 1));
-    players.add(new Player(Color.green, 2));
-    players.get(0).addTank(50, 400);
-    players.get(0).addTank(500, 400);
-    players.get(1).addTank(200, 400);
-    players.get(1).addTank(800, 400);
+   // players.add(new Player(Color.green, 2));
+    players.get(0).addTank(640, 400);
+   // players.get(0).addTank(500, 400);
+    //players.get(1).addTank(200, 400);
+    //players.get(1).addTank(800, 400);
     //end of test stub
 
     for (Player p: players){
@@ -76,24 +76,9 @@ public class PlayingState extends BasicGameState {
     PE.registerCollisionHandler(Tank.class, Terrain.class, (tank, terrain, c) -> {
         tank.setOnGround(true);	//if we've collided with the ground, we should set onGround true
         
-        tank.setVelocity(tank.getVelocity().scale(.99f));
+        tank.setVelocity(tank.getVelocity().scale(.99f));	//apply friction
         
-       /* float v = tank.getVelocity().getX();
-        if(v > 0) { //if we have rightward velocity but there is a slope in the way, move us up
-        	if(terrain.checkLineCollision(
-        			new Vector(tank.getX() + Tank.TANK_WIDTH/2 + 1, tank.getY() - Tank.TANK_HEIGHT/2),
-        			new Vector(tank.getX() + Tank.TANK_WIDTH/2 + 1, tank.getY() + Tank.TANK_HEIGHT/4))) {
-        		tank.setY(tank.getY() - 10);
-        	}
-        }
-        
-        if(v < 0) {	//if we have leftward velocity but there is a slope in the way, move us up
-        	if(terrain.checkLineCollision(
-        			new Vector(tank.getX() - Tank.TANK_WIDTH/2 - 1, tank.getY() - Tank.TANK_HEIGHT/2),
-        			new Vector(tank.getX() - Tank.TANK_WIDTH/2 - 1, tank.getY() + Tank.TANK_HEIGHT/4))){
-        		tank.setY(tank.getY() - 10);
-        	}
-        }*/
+        tank.rotateToSlope(terrain);
     });
     
     PE.registerCollisionHandler(Projectile.class, PhysicsEntity.class, (projectile, obstacle, c) -> {
