@@ -21,6 +21,9 @@ public class Tank extends PhysicsEntity {
   private Cannon cannon;
   private boolean onGround;
   private Player myPlayer;
+  
+  private Vector nearestTerrainSlopeStart;
+  private Vector nearestTerrainSlopeStop;
 
 
   public Tank(final float x, final float y, Color c, Player player){
@@ -42,12 +45,13 @@ public class Tank extends PhysicsEntity {
 
   public void move(Direction direction){
     if (direction == Direction.LEFT){
-      setAcceleration(new Vector(-ACCELERATION, getAcceleration().getY()));
+      setAcceleration(new Vector(-ACCELERATION, 0).rotate(this.getRotation()));
     } else if(direction == Direction.RIGHT){
-      setAcceleration(new Vector(ACCELERATION, getAcceleration().getY()));
+      setAcceleration(new Vector(ACCELERATION, 0).rotate(this.getRotation()));
     } else {
-    	setAcceleration(new Vector(0, getAcceleration().getY()));
+//    	setAcceleration(new Vector(0, getAcceleration().getY()));
     }
+//    setAcceleration(getAcceleration());
   }
 
   //NEED REWORK TO JUMPJETS
@@ -58,10 +62,42 @@ public class Tank extends PhysicsEntity {
   public void update(int delta){
     cannon.setX(this.getX());
     cannon.setY(this.getY());
+    cannon.updateOffset(this.getRotation());
   }
   
-  public void update(int delta, Terrain t) {
-	 
+  public boolean checkTerrainCollision(int delta, Terrain terrain) {
+    this.setRotation(0);
+    int visionThreshold = 200;
+    int downwardRayCount = 2;
+    Vector terrainBoundary[] = new Vector[downwardRayCount];
+    Vector tankBottomDirection = Vector.getUnit(this.getRotation());
+    Vector tankCenter = getPosition();
+
+    Vector tankBottomLeft = tankCenter.subtract(tankBottomDirection.scale(TANK_WIDTH/2));
+//    Vector tankBottomRight = new Vector(this.getCoarseGrainedMinX(), this.getCoarseGrainedMaxY());
+    Vector step = tankBottomDirection.scale(TANK_WIDTH/(downwardRayCount-1));
+    Vector current = tankBottomLeft;
+    for (int i = 0; i < downwardRayCount; i++) {
+      Vector collisionPoint = terrain.nearestNonEmptyPoint(current, Terrain.Direction.DOWN, visionThreshold);
+      terrainBoundary[i] = collisionPoint;
+      current = current.add(step);
+    }
+//    for (Vector point : terrainBoundary) {
+//      nearestTerrainSlopeStart
+//    }
+    nearestTerrainSlopeStart = terrainBoundary[0];
+    nearestTerrainSlopeStop = terrainBoundary[downwardRayCount-1];
+    if (nearestTerrainSlopeStart == null || nearestTerrainSlopeStop == null) {
+      return super.checkTerrainCollision(delta, terrain);
+    }
+    Vector terrainSlope = nearestTerrainSlopeStop.subtract(nearestTerrainSlopeStart);
+    
+    double angleToTerrain = tankBottomDirection.angleTo(terrainSlope);
+    System.out.println("Angle: " + angleToTerrain);
+    this.rotate(angleToTerrain);
+    
+//    return false;
+    return super.checkTerrainCollision(delta, terrain);
   }
   
   public void rotateToSlope(Terrain t) {
@@ -78,21 +114,21 @@ public class Tank extends PhysicsEntity {
 	  
 	  for(int i = 0; i < TANK_WIDTH/2; i++) {
 		  int d = t.castRay(new Vector(this.getX() - i, this.getY()+TANK_HEIGHT/2), Terrain.Direction.DOWN);
-		  System.out.println("left d: " + d);
+//		  System.out.println("left d: " + d);
 		  if(leftYDistance > d) {
-			  System.out.println("foo");
+//			  System.out.println("foo");
 			  leftYDistance = d;
 			  leftXDistance = i;
 		  }
 		  d = t.castRay(new Vector(this.getX() + i, this.getY()+TANK_HEIGHT/2), Terrain.Direction.DOWN);
-		  System.out.println("right d: " + d);
+//		  System.out.println("right d: " + d);
 		  if(rightYDistance > d) {
-			  System.out.println("bar");
+//			  System.out.println("bar");
 			  rightYDistance = d;
 			  rightXDistance = i;
 		  }
 	  }
-	  System.out.println("left: <" + leftXDistance + ", " + leftYDistance + "> right: <" + rightXDistance + ", " + rightYDistance + ">");
+//	  System.out.println("left: <" + leftXDistance + ", " + leftYDistance + "> right: <" + rightXDistance + ", " + rightYDistance + ">");
 	  
 	  if(leftYDistance > rightYDistance) {
 		  sign = -1;
@@ -105,19 +141,15 @@ public class Tank extends PhysicsEntity {
 	  
 	  y = Math.abs(leftYDistance - rightYDistance);
 	  
-	  System.out.println("x: " + x);
-	  System.out.println("y:" + y);
+//	  System.out.println("x: " + x);
+//	  System.out.println("y:" + y);
 	  
 	  if(x == 0) {
 		  this.rotate(0);
 	  }else {
 		  this.rotate(sign * Math.toDegrees(Math.atan(y/x)));
-		  System.out.println("rotation: " + sign * Math.toDegrees(Math.atan(y/x)));
+//		  System.out.println("rotation: " + sign * Math.toDegrees(Math.atan(y/x)));
 	  }
-	  
-	  
-	  
-	  cannon.updateOffset(this.getRotation());
 	  
   }
   
@@ -125,6 +157,12 @@ public class Tank extends PhysicsEntity {
   public void render(Graphics g) {
     super.render(g);
     cannon.render(g);
+    
+    if (nearestTerrainSlopeStart != null && nearestTerrainSlopeStop != null) {
+      g.setColor(Color.red);
+      g.drawLine(nearestTerrainSlopeStart.getX(), nearestTerrainSlopeStart.getY(), 
+          nearestTerrainSlopeStop.getX(), nearestTerrainSlopeStop.getY());
+    }
   }
 
   //set/get functions

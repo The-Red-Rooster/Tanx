@@ -80,7 +80,6 @@ public class PhysicsEngine {
 
 
 		translateEntity(e, delta);	//move the object
-		e.update(delta, world.terrain);
 	}
 	
 	private void applyCollisionDetection(int delta) {
@@ -92,30 +91,12 @@ public class PhysicsEngine {
 	      if (a == b) { continue; }
 	      checkCollision(delta, a, b);
 	    }
-	    checkTerrainCollision(delta, a);
+	    handlePotentialTerrainCollision(delta, a);
 	  }
   }
 	
-	private void checkTerrainCollision(int delta, PhysicsEntity entity) {
-		LinkedList<Shape> shapes = entity.getShapes();
-		Vector position = entity.getPosition();
-		float radius = entity.getCoarseGrainedRadius();
-		boolean flag = false;
-		for(int i = 0; i < shapes.size(); i++) {
-			Shape s = shapes.get(i);
-			switch(s.getPointCount()) {
-			case 4:
-				if(world.terrain.checkRectangularCollision(new Vector(entity.getX() - s.getWidth()/2, entity.getY() - s.getHeight()/2 ), new Vector(entity.getX() + s.getWidth()/2, entity.getY() + s.getHeight()/2))) {
-					flag = true;
-				}
-				break;
-			default:
-				if(world.terrain.checkCircularCollision(position, radius)) {
-					flag = true;
-				}
-			}
-		}
-		if (flag) {
+	private void handlePotentialTerrainCollision(int delta, PhysicsEntity entity) {
+		if (entity.checkTerrainCollision(delta, world.terrain)) {
 			resolveTerrainCollision(delta, entity, world.terrain);
 			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
 		}

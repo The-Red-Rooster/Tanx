@@ -221,36 +221,45 @@ public class Terrain extends PhysicsEntity {
 		setTerrainInLineAuxillary(p1, p, t);
 		setTerrainInLineAuxillary(p, p2, t);
 	}
+	private Vector vectorForDirection(Direction d) {
+	  switch(d) {
+    case UP:
+      return new Vector(0, -1);
+    case DOWN:
+      return new Vector(0, +1);
+    case LEFT:
+      return new Vector(+1, 0);
+    case RIGHT:
+      return new Vector(-1, 0);
+    }
+    return null;
+	}
 	
 	public int castRay(Vector p, Direction d) {
 		int x = (int)p.getX();
 		int y = (int)p.getY();
+		Vector current = p;
+		Vector directionDelta = vectorForDirection(d);
 		int length = 0;
 		
 		if(x < 0 || x >= width || y < 0 || y >= height) return -1;
 		
-		while(mask[x][y] == TerrainType.OPEN) {
+		while(!this.checkPointCollision(current)) {
 			length++;
-			switch(d) {
-			case UP:
-				y--;
-				break;
-			case DOWN:
-				y++;
-				break;
-			case LEFT:
-				x--;
-				break;
-			case RIGHT:
-				x++;
-				break;
-			}
-			if(x < 0 || x >= width || y < 0 || y >= height) return -1;
+			current = current.add(directionDelta);
+//			if(x < 0 || x >= width || y < 0 || y >= height) return -1;
 		}
 			
 		return length;
 	}
 	
+	public Vector nearestNonEmptyPoint(Vector start, Direction direction, int maxDistance) {
+	  int distance = this.castRay(start, direction);
+	  if (distance > maxDistance) {
+	    return null;
+	  }
+	  return start.add(vectorForDirection(direction).scale(distance));
+	}
 	/*private void printMask() {	//this function is used for debugging, NEVER call it in practice, it prints info about each individual pixel
 		for(int x = 0; x < width; x++) {
 			for(int y = 0; y < height; y++) {

@@ -1,4 +1,7 @@
+import java.util.LinkedList;
+
 import jig.Entity;
+import jig.Shape;
 import jig.Vector;
 
 public class PhysicsEntity extends Entity {
@@ -20,25 +23,29 @@ public class PhysicsEntity extends Entity {
     terminal = t;
   }
   
-  public void checkTerrainCollision(Terrain t) {
+  public boolean checkTerrainCollision(int delta, Terrain terrain) {
 	  /*
 	   	Check for collision with the terrain. This method is specific to each entity because of
 	   	differing entity shapes.
 	   */
-  }
-  
-  private void handleTerrainCollision(Terrain t) {
-	  /*
-	    Each entity handles a terrain collision differently, so they each have 
-	   */
-  }
-  
-  public void update(int delta, Terrain t) {
-	  /*
-	   	basic physics entities should probably do nothing,
-	  	this method is just here for the more specific physics entities to inherit
-	  	and allow for generalized calling by the engine
-	  */
+    LinkedList<Shape> shapes = getShapes();
+    Vector position = getPosition();
+    float radius = getCoarseGrainedRadius();
+    for(int i = 0; i < shapes.size(); i++) {
+      Shape s = shapes.get(i);
+      switch(s.getPointCount()) {
+      case 4:
+        if(terrain.checkRectangularCollision(new Vector(getX() - s.getWidth()/2, getY() - s.getHeight()/2 ), new Vector(getX() + s.getWidth()/2, getY() + s.getHeight()/2))) {
+          return true;
+        }
+        break;
+      default:
+        if(terrain.checkCircularCollision(position, radius)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   protected void setVelocity(Vector v){velocity = v;}
