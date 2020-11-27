@@ -74,7 +74,6 @@ public class PlayingState extends BasicGameState {
     
     // Example use case. Probably not complete.
     PE.registerCollisionHandler(Tank.class, Terrain.class, (tank, terrain, c) -> {
-        tank.setOnGround(true);	//if we've collided with the ground, we should set onGround true
         
         tank.setVelocity(tank.getVelocity().scale(.99f));	//apply friction
         

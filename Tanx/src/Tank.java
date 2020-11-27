@@ -19,7 +19,6 @@ public class Tank extends PhysicsEntity {
   //Class Variables
   private int health;
   private Cannon cannon;
-  private boolean onGround;
   private Player myPlayer;
 
 
@@ -41,13 +40,16 @@ public class Tank extends PhysicsEntity {
   public void rotate(Direction direction, int delta){cannon.rotate(direction, delta);}
 
   public void move(Direction direction){
+	double rotation = (float)Math.toRadians(-this.getRotation());
     if (direction == Direction.LEFT){
-      setAcceleration(new Vector(-ACCELERATION, getAcceleration().getY()));
+    	setAcceleration(new Vector((float)-Math.cos(rotation), (float)Math.sin(rotation)).scale(ACCELERATION));
     } else if(direction == Direction.RIGHT){
-      setAcceleration(new Vector(ACCELERATION, getAcceleration().getY()));
+    	setAcceleration(new Vector((float)Math.cos(rotation), (float)Math.sin(rotation)).scale(ACCELERATION));
     } else {
-    	setAcceleration(new Vector(0, getAcceleration().getY()));
+    	setAcceleration(new Vector(0, 0));
     }
+    System.out.println(rotation);
+    System.out.println(this.getAcceleration());
   }
 
   //NEED REWORK TO JUMPJETS
@@ -61,7 +63,9 @@ public class Tank extends PhysicsEntity {
   }
   
   public void update(int delta, Terrain t) {
-	 
+	 if(!this.getOnGround()) {
+		 this.setRotation(0);
+	 }
   }
   
   public void rotateToSlope(Terrain t) {
@@ -78,22 +82,17 @@ public class Tank extends PhysicsEntity {
 	  
 	  for(int i = 0; i < TANK_WIDTH/2; i++) {
 		  int d = t.castRay(new Vector(this.getX() - i, this.getY()+TANK_HEIGHT/2), Terrain.Direction.DOWN);
-		  System.out.println("left d: " + d);
 		  if(leftYDistance > d) {
-			  System.out.println("foo");
 			  leftYDistance = d;
 			  leftXDistance = i;
 		  }
 		  d = t.castRay(new Vector(this.getX() + i, this.getY()+TANK_HEIGHT/2), Terrain.Direction.DOWN);
-		  System.out.println("right d: " + d);
 		  if(rightYDistance > d) {
-			  System.out.println("bar");
 			  rightYDistance = d;
 			  rightXDistance = i;
 		  }
 	  }
-	  System.out.println("left: <" + leftXDistance + ", " + leftYDistance + "> right: <" + rightXDistance + ", " + rightYDistance + ">");
-	  
+	    
 	  if(leftYDistance > rightYDistance) {
 		  sign = -1;
 	  }
@@ -105,14 +104,11 @@ public class Tank extends PhysicsEntity {
 	  
 	  y = Math.abs(leftYDistance - rightYDistance);
 	  
-	  System.out.println("x: " + x);
-	  System.out.println("y:" + y);
 	  
 	  if(x == 0) {
 		  this.rotate(0);
 	  }else {
 		  this.rotate(sign * Math.toDegrees(Math.atan(y/x)));
-		  System.out.println("rotation: " + sign * Math.toDegrees(Math.atan(y/x)));
 	  }
 	  
 	  
@@ -132,6 +128,5 @@ public class Tank extends PhysicsEntity {
   public int getHealth() {return health;}
   public void setHealth(int health) {this.health = health;}
   public void setOnGround(boolean onGround) {this.onGround = onGround;}
-  public boolean isOnGround() {return onGround;}
   public Player getMyPlayer() {return myPlayer;}
 }

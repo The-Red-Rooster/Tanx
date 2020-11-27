@@ -6,6 +6,7 @@ public class PhysicsEntity extends Entity {
 
   //class variables
   protected boolean isDead;
+  protected boolean onGround;
   private Vector acceleration;
   private Vector velocity;
   private float drag;
@@ -47,5 +48,7 @@ public class PhysicsEntity extends Entity {
   public Vector getVelocity(){return velocity;}
   public float getDrag(){return drag;}
   public Vector getTerminal() {return terminal;}
-  public boolean getIsDead() { return isDead; };
+  public boolean getIsDead() { return isDead; }
+  public boolean getOnGround() { return onGround; }
+  public void setOnGround(boolean b) { onGround = b; }
 }

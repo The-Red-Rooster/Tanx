@@ -116,8 +116,11 @@ public class PhysicsEngine {
 			}
 		}
 		if (flag) {
+			entity.setOnGround(true);	//if we've collided with the ground, we should set onGround true
 			resolveTerrainCollision(delta, entity, world.terrain);
 			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
+		} else {
+			entity.setOnGround(false);
 		}
 	}
 	
