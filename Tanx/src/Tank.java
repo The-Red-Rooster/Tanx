@@ -41,6 +41,8 @@ public class Tank extends PhysicsEntity {
 
   public void move(Direction direction){
 	double rotation = (float)Math.toRadians(-this.getRotation());
+	
+	if(!this.getOnGround()) rotation = 0; 
     if (direction == Direction.LEFT){
     	setAcceleration(new Vector((float)-Math.cos(rotation), (float)Math.sin(rotation)).scale(ACCELERATION));
     } else if(direction == Direction.RIGHT){
@@ -63,9 +65,7 @@ public class Tank extends PhysicsEntity {
   }
   
   public void update(int delta, Terrain t) {
-	 if(!this.getOnGround()) {
-		 this.setRotation(0);
-	 }
+	 
   }
   
   public void rotateToSlope(Terrain t) {

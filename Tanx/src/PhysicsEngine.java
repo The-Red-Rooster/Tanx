@@ -71,7 +71,9 @@ public class PhysicsEngine {
 	private void applyPhysics(PhysicsEntity e, int delta) {	//still needs to handle collisions
 		Vector A = e.getAcceleration();	//get movement acceleration
 //		System.out.println("incoming" + A);
-		A = applyGravity(A);	//add gravity to acceleration
+		if(!e.getOnGround()) {
+			A = applyGravity(A);	//add gravity to acceleration
+		}
 //		System.out.println("post gravity " + A);
 		//System.out.println("friction");
 		//System.out.println(A);
