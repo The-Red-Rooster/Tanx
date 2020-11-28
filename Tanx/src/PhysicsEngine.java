@@ -31,7 +31,7 @@ class TypeMatchingHandler<A extends PhysicsEntity, B extends PhysicsEntity> impl
 
 public class PhysicsEngine {
 	
-	static public float GRAV_CONSTANT = .5f;
+	static public float GRAV_CONSTANT = .02f;
 	static public float NORMAL_FRICTION = .1f;
 	
 	
@@ -97,8 +97,8 @@ public class PhysicsEngine {
 	
 	private void handlePotentialTerrainCollision(int delta, PhysicsEntity entity) {
 		if (entity.checkTerrainCollision(delta, world.terrain)) {
-			resolveTerrainCollision(delta, entity, world.terrain);
-			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
+//			resolveTerrainCollision(delta, entity, world.terrain);
+//			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
 		}
 	}
 	

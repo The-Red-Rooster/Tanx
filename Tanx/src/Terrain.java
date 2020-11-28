@@ -1,3 +1,5 @@
+import java.util.function.Predicate;
+
 import org.newdawn.slick.Image;
 import org.newdawn.slick.ImageBuffer;
 
@@ -108,14 +110,17 @@ public class Terrain extends PhysicsEntity {
 	}
 	
 	public boolean checkPointCollision(Vector p) {	//check a single pixel
-		int x = (int)p.getX();
-		int y = (int)p.getY();
-		
-		if(x < 0 || x >= width || y < 0 || y >= height) return false;	//dont check out of world
-		
-		if(mask[x][y] != TerrainType.OPEN) return true;
-		return false;
+		return checkPointCollision(p, (terrainType) -> terrainType != TerrainType.OPEN);
 	}
+	public boolean checkPointCollision(Vector p, Predicate<TerrainType> predicate) { //check a single pixel
+    int x = (int)p.getX();
+    int y = (int)p.getY();
+    
+    if(x < 0 || x >= width || y < 0 || y >= height) return false; //dont check out of world
+    
+    if(predicate.test(mask[x][y])) return true;
+    return false;
+  }
 	
 	public boolean checkLineCollision(Vector p1, Vector p2) {	//recursive function for lines
 		int x1 = (int)p1.getX();
@@ -234,24 +239,40 @@ public class Terrain extends PhysicsEntity {
     }
     return null;
 	}
+	private Direction opposite(Direction d) {
+	  switch(d) {
+    case UP:
+      return Direction.DOWN;
+    case DOWN:
+      return Direction.UP;
+    case LEFT:
+      return Direction.RIGHT;
+    case RIGHT:
+      return Direction.LEFT;
+    }
+	  return Direction.UP;
+	}
 	
 	public int castRay(Vector p, Direction d) {
-		int x = (int)p.getX();
-		int y = (int)p.getY();
-		Vector current = p;
-		Vector directionDelta = vectorForDirection(d);
-		int length = 0;
-		
-		if(x < 0 || x >= width || y < 0 || y >= height) return -1;
-		
-		while(!this.checkPointCollision(current)) {
-			length++;
-			current = current.add(directionDelta);
-//			if(x < 0 || x >= width || y < 0 || y >= height) return -1;
-		}
-			
-		return length;
+		return firstWhere(p, d, (terrainType) -> terrainType != TerrainType.OPEN);
 	}
+	public int firstWhere(Vector p, Direction d, Predicate<TerrainType> predicate) {
+    int x = (int)p.getX();
+    int y = (int)p.getY();
+    Vector current = p;
+    Vector directionDelta = vectorForDirection(d);
+    int length = 0;
+    
+    if(x < 0 || x >= width || y < 0 || y >= height) return -1;
+    
+    while(!this.checkPointCollision(current, predicate)) {
+      length++;
+      current = current.add(directionDelta);
+//      if(x < 0 || x >= width || y < 0 || y >= height) return -1;
+    }
+      
+    return length;
+  }
 	
 	public Vector nearestNonEmptyPoint(Vector start, Direction direction, int maxDistance) {
 	  int distance = this.castRay(start, direction);
@@ -260,6 +281,24 @@ public class Terrain extends PhysicsEntity {
 	  }
 	  return start.add(vectorForDirection(direction).scale(distance));
 	}
+	public Vector nearestEdgeForwardOrBackward(Vector start, Direction direction, int maxDistance) {
+	  Predicate<TerrainType> isEmpty = (t) -> t == TerrainType.OPEN;
+	  Predicate<TerrainType> isNotEmpty = (t) -> t != TerrainType.OPEN;
+    int distance = this.firstWhere(start, direction, isNotEmpty);
+    if (distance > maxDistance) {
+      return null;
+    }
+    System.out.println("Ray length forward: " + distance);
+    if (distance <= 0) {
+      distance = this.firstWhere(start, opposite(direction), isEmpty);
+      System.out.println("Ray length backward: " + distance);
+      if (distance > maxDistance) {
+        return null;
+      }
+      return start.add(vectorForDirection(opposite(direction)).scale(distance));
+    }
+    return start.add(vectorForDirection(direction).scale(distance));
+  }
 	/*private void printMask() {	//this function is used for debugging, NEVER call it in practice, it prints info about each individual pixel
 		for(int x = 0; x < width; x++) {
 			for(int y = 0; y < height; y++) {

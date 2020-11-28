@@ -7,6 +7,37 @@ import org.newdawn.slick.geom.Transform;
 
 enum Direction {LEFT, RIGHT, NONE};
 
+class LineSegment {
+  public final Vector start;
+  public final Vector end;
+  public LineSegment(final Vector start, final Vector end) {
+    this.start = start;
+    this.end = end;
+  }
+  public static LineSegment approximation(Vector points[]) {
+    if (points[0] == null) { return null; }
+    if (points[points.length-1] == null) { return null; }
+    return new LineSegment(points[0], points[points.length-1]);
+  }
+  
+  public void draw(Graphics g) {
+    g.drawLine(start.getX(), start.getY(), end.getX(), end.getY());
+  }
+  
+  public Vector getDifference() {
+    return end.subtract(start);
+  }
+  public Vector getDirection() {
+    return getDifference().unit();
+  }
+  public LineSegment rotate(double radians) {
+    return new LineSegment(start.rotate(radians), end.rotate(radians));
+  }
+  public LineSegment translate(Vector delta) {
+    return new LineSegment(start.add(delta), end.add(delta));
+  }
+}
+
 public class Tank extends PhysicsEntity {
   //Constants
   public static final int INIT_TANK_HEALTH = 100;
@@ -22,8 +53,7 @@ public class Tank extends PhysicsEntity {
   private boolean onGround;
   private Player myPlayer;
   
-  private Vector nearestTerrainSlopeStart;
-  private Vector nearestTerrainSlopeStop;
+  private LineSegment nearestTerrainSlope;
 
 
   public Tank(final float x, final float y, Color c, Player player){
@@ -49,7 +79,7 @@ public class Tank extends PhysicsEntity {
     } else if(direction == Direction.RIGHT){
       setAcceleration(new Vector(ACCELERATION, 0).rotate(this.getRotation()));
     } else {
-//    	setAcceleration(new Vector(0, getAcceleration().getY()));
+    	setAcceleration(new Vector(0, 0));
     }
 //    setAcceleration(getAcceleration());
   }
@@ -65,39 +95,65 @@ public class Tank extends PhysicsEntity {
     cannon.updateOffset(this.getRotation());
   }
   
-  public boolean checkTerrainCollision(int delta, Terrain terrain) {
-    this.setRotation(0);
-    int visionThreshold = 200;
-    int downwardRayCount = 2;
-    Vector terrainBoundary[] = new Vector[downwardRayCount];
+  private LineSegment bottomEdge() {
     Vector tankBottomDirection = Vector.getUnit(this.getRotation());
     Vector tankCenter = getPosition();
+    Vector tankBottomFromCenter = tankBottomDirection.getPerpendicular().scale(TANK_HEIGHT/2);
 
     Vector tankBottomLeft = tankCenter.subtract(tankBottomDirection.scale(TANK_WIDTH/2));
-//    Vector tankBottomRight = new Vector(this.getCoarseGrainedMinX(), this.getCoarseGrainedMaxY());
-    Vector step = tankBottomDirection.scale(TANK_WIDTH/(downwardRayCount-1));
-    Vector current = tankBottomLeft;
+    Vector tankBottomRight = tankCenter.add(tankBottomDirection.scale(TANK_WIDTH/2));
+    return LineSegment.approximation(new Vector[] {tankBottomLeft, tankBottomRight}).translate(tankBottomFromCenter);
+  }
+  private LineSegment calculateNearestTerrainSlope(Terrain terrain) {
+    int visionThreshold = 200;
+    int downwardRayCount = 2;
+    LineSegment tankBottom = this.bottomEdge();
+    Vector terrainBoundary[] = new Vector[downwardRayCount];
+    Vector step = tankBottom.getDirection().scale(TANK_WIDTH/(downwardRayCount-1));
+    Vector current = tankBottom.start;
     for (int i = 0; i < downwardRayCount; i++) {
-      Vector collisionPoint = terrain.nearestNonEmptyPoint(current, Terrain.Direction.DOWN, visionThreshold);
+      Vector collisionPoint = terrain.nearestEdgeForwardOrBackward(current, Terrain.Direction.DOWN, visionThreshold);
       terrainBoundary[i] = collisionPoint;
       current = current.add(step);
     }
-//    for (Vector point : terrainBoundary) {
-//      nearestTerrainSlopeStart
-//    }
-    nearestTerrainSlopeStart = terrainBoundary[0];
-    nearestTerrainSlopeStop = terrainBoundary[downwardRayCount-1];
-    if (nearestTerrainSlopeStart == null || nearestTerrainSlopeStop == null) {
-      return super.checkTerrainCollision(delta, terrain);
+    return LineSegment.approximation(terrainBoundary);
+    
+  }
+  private void calculateRotation(int delta, Terrain terrain) {
+//    double oldRotation = this.getRotation();
+    this.setRotation(0);
+    LineSegment tankBottom = this.bottomEdge();
+    nearestTerrainSlope = calculateNearestTerrainSlope(terrain);
+    if (nearestTerrainSlope == null) {
+//      this.setRotation(oldRotation); // consider using zero to level out
+      return;
     }
-    Vector terrainSlope = nearestTerrainSlopeStop.subtract(nearestTerrainSlopeStart);
     
-    double angleToTerrain = tankBottomDirection.angleTo(terrainSlope);
-    System.out.println("Angle: " + angleToTerrain);
-    this.rotate(angleToTerrain);
+    double angleToTerrain = tankBottom.getDirection().angleTo(nearestTerrainSlope.getDifference());
+//    System.out.println("Angle: " + angleToTerrain);
+    this.setRotation(angleToTerrain);
+  }
+  private void calculateTranslation(int delta, Terrain terrain) {
+    nearestTerrainSlope = calculateNearestTerrainSlope(terrain);
+    if (nearestTerrainSlope == null) { return; }
+    LineSegment tankBottom = this.bottomEdge(); // recalculate based on new rotation.
+    Vector leftDistance = tankBottom.start.subtract(nearestTerrainSlope.start);
+    Vector rightDistance = tankBottom.end.subtract(nearestTerrainSlope.end);
+    Vector avgDistance = leftDistance.add(rightDistance).scale(-0.5f);
     
-//    return false;
-    return super.checkTerrainCollision(delta, terrain);
+    Vector translation = avgDistance;//.project(nearestTerrainSlope.getDirection().getPerpendicular());
+    // not quite working yet...
+    System.out.println("Translation: " + translation);
+    if (translation.lengthSquared() < 30*30) {
+      this.translate(translation);
+//      this.setVelocity(this.getVelocity().project(translation.getPerpendicular()));
+    }
+  }
+  public boolean checkTerrainCollision(int delta, Terrain terrain) {
+    calculateRotation(delta, terrain);
+    calculateTranslation(delta, terrain);
+    
+    return false; // we handled it ourselves, don't let others handle it.
   }
   
   public void rotateToSlope(Terrain t) {
@@ -158,10 +214,11 @@ public class Tank extends PhysicsEntity {
     super.render(g);
     cannon.render(g);
     
-    if (nearestTerrainSlopeStart != null && nearestTerrainSlopeStop != null) {
-      g.setColor(Color.red);
-      g.drawLine(nearestTerrainSlopeStart.getX(), nearestTerrainSlopeStart.getY(), 
-          nearestTerrainSlopeStop.getX(), nearestTerrainSlopeStop.getY());
+    if (nearestTerrainSlope != null) {
+      g.setColor(Color.orange);
+      nearestTerrainSlope.draw(g);
+      g.setColor(Color.green);
+      this.bottomEdge().draw(g);
     }
   }
 

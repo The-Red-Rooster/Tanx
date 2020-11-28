@@ -121,7 +121,12 @@ public class PlayingState extends BasicGameState {
 			int delta) throws SlickException {
 		Input input = container.getInput();
 
-		turnTimer -= delta;
+//		Vector screenMouse = new Vector(input.getMouseX(), input.getMouseY());
+//		Vector worldMouse = camera.worldLocationForScreenLocation(screenMouse);
+//		Tank tank = players.get(pIndex).getTank();
+//		tank.setPosition(worldMouse);
+		
+//		turnTimer -= delta;
 		if (state == phase.MOVEFIRE){
 			Tank currentTank = players.get(pIndex).getTank();
 
