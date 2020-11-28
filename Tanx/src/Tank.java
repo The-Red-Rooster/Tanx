@@ -20,7 +20,8 @@ class LineSegment {
     return new LineSegment(points[0], points[points.length-1]);
   }
   
-  public void draw(Graphics g) {
+  public void draw(Graphics g, Color color) {
+    g.setColor(color);
     g.drawLine(start.getX(), start.getY(), end.getX(), end.getY());
   }
   
@@ -146,7 +147,8 @@ public class Tank extends PhysicsEntity {
     System.out.println("Translation: " + translation);
     if (translation.lengthSquared() < 30*30) {
       this.translate(translation);
-//      this.setVelocity(this.getVelocity().project(translation.getPerpendicular()));
+//      this.setVelocity(getVelocity().subtract(translation));
+      this.setVelocity(this.getVelocity().project(nearestTerrainSlope.getDirection()));
     }
   }
   public boolean checkTerrainCollision(int delta, Terrain terrain) {
@@ -215,11 +217,13 @@ public class Tank extends PhysicsEntity {
     cannon.render(g);
     
     if (nearestTerrainSlope != null) {
-      g.setColor(Color.orange);
-      nearestTerrainSlope.draw(g);
-      g.setColor(Color.green);
-      this.bottomEdge().draw(g);
+      nearestTerrainSlope.draw(g, Color.orange);
+      this.bottomEdge().draw(g, Color.green);
     }
+    LineSegment v = new LineSegment(getPosition(), this.getPosition().add(this.getVelocity().scale(1000)));
+    v.draw(g, Color.lightGray);
+    LineSegment a = new LineSegment(getPosition(), this.getPosition().add(this.getAcceleration().scale(1000)));
+    a.draw(g, Color.red);
   }
 
   //set/get functions
