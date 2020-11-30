@@ -1,10 +1,3 @@
-import java.util.ArrayList;
-import java.util.Iterator;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-
-import jig.Entity;
 import jig.ResourceManager;
 
 import org.newdawn.slick.AppGameContainer;
@@ -32,8 +25,14 @@ public class Tanx extends StateBasedGame {
 	public static final int PLAYINGSTATE = 1;
 	public static final int GAMEOVERSTATE = 2;
 
-	public static final String BASIC_CANNON_SPRITE = "resource/cannon1.png";
-
+	public static final String FUEL_GAUGE_OVERLAY = "resources/FuelGauge.png";
+	public static final String FUEL_GAUGE_ARROW = "resources/FuelGaugeArrow.png";
+	public static final String WEAPON_POINTER = "resources/weaponPointer.png";
+	public static final String HEALTH_BAR = "resources/healthBar.png";
+	public static final String FOCUS_ARROW = "resources/tankPointer.png";
+	public static final String TIMER_GAUGE = "resources/timerGauge.png";
+	public static final String BANG_EXPLOSIONIMG_RSC = "resources/explosion.png";
+	public static final String BANG_EXPLOSIONSND_RSC = "resources/explosion.wav";
 	public final int ScreenWidth;
 	public final int ScreenHeight;
 
@@ -61,17 +60,17 @@ public class Tanx extends StateBasedGame {
 		//      addState(new GameOverState());
 		addState(new PlayingState());
 
-		// the sound resource takes a particularly long time to load,
-		// we preload it here to (1) reduce latency when we first play it
-		// and (2) because loading it will load the audio libraries and
-		// unless that is done now, we can't *disable* sound as we
-		// attempt to do in the startUp() method.
-		//ex: ResourceManager.loadSound(BANG_EXPLOSIONSND_RSC);
-
 		// preload all the resources to avoid warnings & minimize latency...
 		//ex: ResourceManager.loadImage(BALL_BALLIMG_RSC);
-		
-
+    ResourceManager.loadImage(FUEL_GAUGE_ARROW);
+    ResourceManager.loadImage(FUEL_GAUGE_OVERLAY);
+    ResourceManager.loadImage(WEAPON_POINTER);
+		ResourceManager.loadImage(HEALTH_BAR);
+		ResourceManager.loadImage(FOCUS_ARROW);
+		ResourceManager.loadImage(TIMER_GAUGE);
+		ResourceManager.loadImage(Tanx.BANG_EXPLOSIONIMG_RSC);
+		ResourceManager.loadSound(Tanx.BANG_EXPLOSIONSND_RSC);
+    
 	}
 
 	public static void main(String[] args) {

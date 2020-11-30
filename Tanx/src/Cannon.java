@@ -10,8 +10,13 @@ public class Cannon extends Entity {
   public static float MAX_ROTATION_FACTOR = 90;
   public static float ANGLE_CORRECTION = -90;
   public static int BASE_CANNON = 0;
-  public static float BASE_CANNON_POWER = 0.5f;
+  public static String BASE_CANNON_STR = "Basic Cannon";
+  public static float BASE_CANNON_POWER = 1f;
   public static float BASE_CANNON_OFFSET = 50;
+  public static int BIG_CANNON = 1;
+  public static String BIG_CANNON_STR = "Long Range Cannon";
+  public static float BIG_CANNON_POWER = 1f;
+  public static float BIG_CANNON_OFFSET = 50;
   //class variables
   private int type;
   private float power;
@@ -19,10 +24,16 @@ public class Cannon extends Entity {
   private float rotationFactor;
   private float rotationOffset;
 
-  public Cannon(final float x, final float y){
+  public Cannon(final float x, final float y, int type){
     super(x,y);
-    changeType(BASE_CANNON);
+    changeType(type);
     this.addShape(new ConvexPolygon(10f, 45f), Color.red, Color.blue);
+  }
+
+  public static String getTypeStr(int type) {
+    if (type == BIG_CANNON) { return BIG_CANNON_STR;
+    } else if (type == BASE_CANNON) { return BASE_CANNON_STR;
+    } else { return null; }
   }
 
   public void changeType(int newType){
@@ -31,11 +42,16 @@ public class Cannon extends Entity {
       power = BASE_CANNON_POWER;
       fireOffset = BASE_CANNON_OFFSET;
       //changeSprite(Tanx.BASIC_CANNON_SPRITE);
+    } else if (newType == BIG_CANNON){
+      power = BIG_CANNON_POWER;
+      fireOffset = BIG_CANNON_OFFSET;
+      //changeSprite(tanx.BIG_CANNON_SPRITE);
     }
   }
 
   public void changeSprite(String sprite){
-    removeImage(ResourceManager.getImage(Tanx.BASIC_CANNON_SPRITE));
+    //removeImage(ResourceManager.getImage(Tanx.BASIC_CANNON_SPRITE));
+    //removeImage(ResourceManager.getImage(Tanx.BIG_CANNON_SPRITE));
     addImage(ResourceManager.getImage(sprite));
   }
 
@@ -75,7 +91,8 @@ public class Cannon extends Entity {
     projVelocity = projVelocity.setLength(launchPower);
     float x = getX() + fireOffset*(float)Math.cos(angle);
     float y = getY() + fireOffset*(float)Math.sin(angle);
-    if (type == BASE_CANNON) return new Projectile(x, y, projVelocity);
-    return null;
+    return new Projectile(x, y, projVelocity);
   }
+
+  public int getType() { return type; }
 }

@@ -21,20 +21,17 @@ public class PhysicsEntity extends Entity {
     terminal = t;
   }
   
-  public void checkTerrainCollision(Terrain t) {
-	  /*
-	   	Check for collision with the terrain. This method is specific to each entity because of
-	   	differing entity shapes.
-	   */
+  /**
+    Check for collision with the terrain. This method is specific to each entity because of
+    differing entity shapes. The default implementation checks the coarse-grained bounding circle.
+   */
+  public boolean checkTerrainCollision(Terrain terrain) {
+    float radius = this.getCoarseGrainedRadius();
+    Vector position = this.getPosition();
+    return terrain.checkCircularCollision(position, radius);
   }
   
-  private void handleTerrainCollision(Terrain t) {
-	  /*
-	    Each entity handles a terrain collision differently, so they each have 
-	   */
-  }
-  
-  public void update(int delta, Terrain t) {
+  public void update(int delta) {
 	  /*
 	   	basic physics entities should probably do nothing,
 	  	this method is just here for the more specific physics entities to inherit

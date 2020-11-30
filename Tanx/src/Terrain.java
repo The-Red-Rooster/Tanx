@@ -75,9 +75,9 @@ public class Terrain extends PhysicsEntity {
 		int y2 = (int)p2.getY();
 		
 		if(x1 < 0) x1 = 0;	//truncate if out of world
-		if(x2 > width) x2 = width;
+		if(x2 >= width) x2 = width - 1;
 		if(y1 < 0) y1 = 0;
-		if(y2 > height) y2 = height;
+		if(y2 >= height) y2 = height - 1;
 		
 		for(int x = x1; x <= x2; x++) {
 			for(int y = y1; y <= y2; y++) {

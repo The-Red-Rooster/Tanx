@@ -1,12 +1,19 @@
+import jig.Entity;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
 import org.newdawn.slick.geom.Rectangle;
 
 import jig.Vector;
 
+enum camState {IDLE, MOVING, TRACKING};
 public class Camera {
   
   public static float MAX_ZOOM = 4f;
+  public static float DEFAULT_ZOOM = 1f;
+  public static float MAX_CAMERA_SPEED = 2f;
+  public static float MIN_CAMERA_SPEED = .2f;
+  public static float CAM_ACCELERATION = 1.1f;
+  public static float CAM_ZOOM_RATE = .0005f;
   
   /// Portion of the screen that the camera/world occupy.
   /// This may not be the whole screen if we want menus outside the scrolling area.
@@ -17,6 +24,17 @@ public class Camera {
   
   /// Center of the camera in unscaled world points.
   private Vector center;
+
+  ///Camera Motion Variables
+  private camState state;
+  private float distanceToGoal;
+  private Vector velocity;
+  private Vector goalPosition;
+
+  ///Camera tracking variables
+  private Entity trackedObject;
+  private float startTrackHeight;
+  private float startTrackZoom;
   
   private float zoom;
   
@@ -24,7 +42,9 @@ public class Camera {
     this.screen = screen;
     this.world = world;
     this.center = new Vector(world.getCenter());
-    this.zoom = 1.0f;
+    this.zoom = DEFAULT_ZOOM;
+    this.velocity = new Vector(0, 0);
+    state = camState.IDLE;
   }
   
   /// Use this to actually change the rendering.
@@ -92,6 +112,112 @@ public class Camera {
   @Override
   public String toString() {
     return "location: " + center.toString() + ", zoom: " + zoom;
+  }
+
+  public void update(int delta){
+    if (state == camState.MOVING){
+      cameraMotionHandler(delta);
+    } else if (state == camState.TRACKING){
+      cameraTrackingHandler(delta);
+    }
+  }
+
+  //Object Tracking
+  private void cameraTrackingHandler(int delta){
+    setCenter(trackedObject.getPosition());
+    setTrackedZoom();
+  }
+
+  public void setTrackedZoom(){
+    float heightDiff = startTrackHeight - trackedObject.getY();
+    setZoom(-CAM_ZOOM_RATE*heightDiff + startTrackZoom);
+  }
+
+  public void trackObject(Entity e){
+    cleanCameraState();
+    trackedObject = e;
+    startTrackHeight = e.getY();
+    startTrackZoom = getZoom();
+    state = camState.TRACKING;
+  }
+
+  private void cleanCameraState() {
+    if (state == camState.TRACKING) {
+      stopTracking();
+    } else if (state == camState.MOVING) {
+      stopMoving();
+    }
+  }
+
+  public void stopTracking(){
+    trackedObject = null;
+    setZoom(startTrackZoom);
+    state = camState.IDLE;
+  }
+
+
+
+  //camera smoothing code
+  private void cameraMotionHandler(int delta){
+    final float MIN_CAMERA_VELOCITY = .5f;
+    double dist = getDistToGoal();
+    if (dist > distanceToGoal/2){
+      velocity = velocity.scale(CAM_ACCELERATION);
+    } else {
+      velocity = velocity.scale(1/CAM_ACCELERATION);
+    }
+    Vector move = velocity.scale(delta);
+
+    if (move.length() <= MIN_CAMERA_VELOCITY){ move = move.setLength(MIN_CAMERA_VELOCITY); }
+    if (move.length() >= dist || Float.isNaN(move.getX()) || Float.isNaN(move.getY())){
+      stopMoving();
+      setCenter(goalPosition);
+    } else {
+      move(move);
+    }
+  }
+
+  private double getDistToGoal() {
+    double x1 = goalPosition.getX();
+    double x2 = center.getX();
+    double y1 = goalPosition.getY();
+    double y2 = center.getY();
+    double ac = Math.abs(y2 - y1);
+    double cb = Math.abs(x2 - x1);
+    return Math.hypot(ac, cb);
+  }
+
+  public void moveTo(Vector position){
+    cleanCameraState();
+    goalPosition = position;
+    clampGoal();
+    if (goalPosition == center){ return; }
+    state = camState.MOVING;
+    float x1 = center.getX();
+    float x2 = goalPosition.getX();
+    float y1 = center.getY();
+    float y2 = goalPosition.getY();
+    Vector fullLength = new Vector(x2 - x1, y2 - y1);
+    Vector unitVect = fullLength.scale(1/fullLength.length());
+    velocity = unitVect.scale(MIN_CAMERA_SPEED);
+    distanceToGoal = (float)getDistToGoal();
+  }
+
+  private void clampGoal() {
+    Vector viewPortSize = viewPortSize();
+    float minValidX = world.getMinX() + viewPortSize.getX()/2;
+    float maxValidX = world.getMaxX() - viewPortSize.getX()/2;
+    float minValidY = world.getMinY() + viewPortSize.getY()/2;
+    float maxValidY = world.getMaxY() - viewPortSize.getY()/2;
+    goalPosition = goalPosition.clampX(minValidX, maxValidX).clampY(minValidY, maxValidY);
+  }
+
+  public camState getState() { return state; }
+
+  public void stopMoving() {
+    state = camState.IDLE;
+    velocity = new Vector(0, 0);
+    setCenter(goalPosition);
   }
 }
 

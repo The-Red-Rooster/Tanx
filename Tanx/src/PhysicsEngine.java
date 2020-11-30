@@ -1,8 +1,17 @@
 import java.util.ArrayList;
+
 import java.util.LinkedList;
 
+import java.util.function.Consumer;
+
+
 import jig.Collision;
+
 import jig.Shape;
+
+import jig.ConvexPolygon;
+import jig.Entity;
+
 import jig.Vector;
 
 interface CollisionHandler<A extends PhysicsEntity, B extends PhysicsEntity> {
@@ -52,6 +61,15 @@ public class PhysicsEngine {
 	public void removePhysicsEntity(PhysicsEntity e) {
     objects.remove(e);
   }
+	public void forEachEntityInCircle(Vector center, float radius, Consumer<PhysicsEntity> action) {
+	  Entity area = new Entity(center.getX(), center.getY());
+	  area.addShape(new ConvexPolygon(radius));
+	  objects.forEach((e) -> {
+	    if (area.collides(e) != null) {
+	      action.accept(e);
+	    }
+	  });
+	}
 	
 	public <A extends PhysicsEntity, B extends PhysicsEntity> 
 	void registerCollisionHandler(Class<A> aClass, Class<B> bClass, CollisionHandler<A,B> handler) {
@@ -63,12 +81,37 @@ public class PhysicsEngine {
 		objects.forEach((n) -> applyPhysics(n, delta));
 
 		applyCollisionDetection(delta);
-		
-		objects.removeIf(e -> e.getIsDead() || !world.geometry.tilesArea.contains(e.getX(), e.getY()));
+
+    checkObjectBounds();
+		objects.removeIf(e -> e.getIsDead() );
 
 	}
-	
-	private void applyPhysics(PhysicsEntity e, int delta) {	//still needs to handle collisions
+
+  private void checkObjectBounds() {
+	  final float OUT_BOUNDS_LENGTH = 100f;
+
+	  //check that tank doesn't go past allowed x values
+    for (PhysicsEntity e: objects) {
+      if (Tank.class.isInstance(e)){
+        float minX = e.getCoarseGrainedMinX();
+        float maxX = e.getCoarseGrainedMaxX();
+        if (minX <= world.worldBounds.getMinX()){
+          e.setX(world.worldBounds.getMinX() + Math.abs(minX));
+        } else if (maxX >= world.worldBounds.getMaxX()){
+          e.setX(world.worldBounds.getMaxX() - Math.abs(maxX));
+        }
+      }
+
+      //check that object hasn't left our world completely
+      if ((e.getX() <= (world.worldBounds.getMinX() - OUT_BOUNDS_LENGTH))
+          || (e.getX() >= (world.worldBounds.getMaxX() + OUT_BOUNDS_LENGTH))
+          || (e.getY() >= (world.worldBounds.getMaxY() + OUT_BOUNDS_LENGTH))) {
+        e.isDead = true;
+      }
+    }
+  }
+
+  private void applyPhysics(PhysicsEntity e, int delta) {	//still needs to handle collisions
 		Vector A = e.getAcceleration();	//get movement acceleration
 //		System.out.println("incoming" + A);
 		if(!e.getOnGround()) {
@@ -82,7 +125,9 @@ public class PhysicsEngine {
 
 
 		translateEntity(e, delta);	//move the object
-		e.update(delta, world.terrain);
+
+		//e.update(delta, world.terrain);
+
 	}
 	
 	private void applyCollisionDetection(int delta) {
@@ -94,11 +139,11 @@ public class PhysicsEngine {
 	      if (a == b) { continue; }
 	      checkCollision(delta, a, b);
 	    }
-	    checkTerrainCollision(delta, a);
+	    handlePotentialTerrainCollision(delta, a);
 	  }
   }
 	
-	private void checkTerrainCollision(int delta, PhysicsEntity entity) {
+	private boolean checkTerrainCollision(PhysicsEntity entity) {
 		LinkedList<Shape> shapes = entity.getShapes();
 		Vector position = entity.getPosition();
 		float radius = entity.getCoarseGrainedRadius();
@@ -108,22 +153,16 @@ public class PhysicsEngine {
 			switch(s.getPointCount()) {
 			case 4:
 				if(world.terrain.checkRectangularCollision(new Vector(entity.getX() - s.getWidth()/2, entity.getY() - s.getHeight()/2 ), new Vector(entity.getX() + s.getWidth()/2, entity.getY() + s.getHeight()/2))) {
-					flag = true;
+					return true;
 				}
 				break;
 			default:
 				if(world.terrain.checkCircularCollision(position, radius)) {
-					flag = true;
+					return true;
 				}
 			}
 		}
-		if (flag) {
-			entity.setOnGround(true);	//if we've collided with the ground, we should set onGround true
-			resolveTerrainCollision(delta, entity, world.terrain);
-			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
-		} else {
-			entity.setOnGround(false);
-		}
+		return false;
 	}
 	
 	private void resolveTerrainCollision(int delta, PhysicsEntity e, Terrain t) {
@@ -150,8 +189,17 @@ public class PhysicsEngine {
 		} else {
 			resolveCollision(delta, e, world.terrain, null);
 		}
-		
-		
+	}
+
+	private void handlePotentialTerrainCollision(int delta, PhysicsEntity entity) {
+	  if (checkTerrainCollision(entity)) {
+		entity.setOnGround(true);
+	    collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
+	    resolveTerrainCollision(delta, entity, world.terrain);
+	  }else {
+		entity.setOnGround(false);
+	  }
+
 	}
 	
 	private void checkCollision(int delta, PhysicsEntity a, PhysicsEntity b) {
@@ -216,6 +264,9 @@ public class PhysicsEngine {
 	
 	private void translateEntity(PhysicsEntity e, int delta) {
 		e.translate(e.getVelocity().scale(delta));
+		if(e.getY() > world.worldBounds.getMaxY()) {
+			e.translate(e.getVelocity().scale(-delta));
+		}
 	}
 	
 }
