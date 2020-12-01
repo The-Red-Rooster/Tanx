@@ -31,7 +31,7 @@ class TypeMatchingHandler<A extends PhysicsEntity, B extends PhysicsEntity> impl
 
 public class PhysicsEngine {
 	
-	static public float GRAV_CONSTANT = .02f;
+	static public float GRAV_CONSTANT = .1f;
 	static public float NORMAL_FRICTION = .1f;
 	
 	

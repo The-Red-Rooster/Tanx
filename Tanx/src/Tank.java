@@ -132,6 +132,17 @@ public class Tank extends PhysicsEntity {
 //    System.out.println("Angle: " + angleToTerrain);
     this.setRotation(angleToTerrain);
   }
+  private Vector debugFriction;
+  private void applyFriction(int delta, LineSegment terrainSlope) {
+    float mue = 0.04f;
+    Vector vNormal = this.getVelocity().project(nearestTerrainSlope.getDirection().getPerpendicular());
+    Vector vParallel = this.getVelocity().project(nearestTerrainSlope.getDirection());
+    float normalVelocityFactor = vNormal.length();
+    Vector friction = vParallel.negate().setLength(mue*normalVelocityFactor*delta).clampLength(0, vParallel.length());
+    this.setVelocity(this.getVelocity().add(friction));
+    System.out.println("Friction: " + friction + ", parallel: " + vParallel);
+    debugFriction = friction;
+  }
   private void calculateTranslation(int delta, Terrain terrain) {
     nearestTerrainSlope = calculateNearestTerrainSlope(terrain);
     if (nearestTerrainSlope == null) { return; }
@@ -145,7 +156,7 @@ public class Tank extends PhysicsEntity {
     System.out.println("Translation: " + translation);
     if (translation.lengthSquared() < 30*30) {
       this.translate(translation);
-//      this.setVelocity(getVelocity().subtract(translation));
+      this.applyFriction(delta, nearestTerrainSlope);
       this.setVelocity(this.getVelocity().project(nearestTerrainSlope.getDirection()));
     }
   }
@@ -220,6 +231,10 @@ public class Tank extends PhysicsEntity {
     }
     LineSegment v = new LineSegment(getPosition(), this.getPosition().add(this.getVelocity().scale(1000)));
     v.draw(g, Color.lightGray);
+    if (debugFriction != null) {
+      LineSegment f = new LineSegment(getPosition(), this.getPosition().add(this.debugFriction.scale(1000)));
+      f.draw(g, Color.red);
+    }
     LineSegment a = new LineSegment(getPosition(), this.getPosition().add(this.getAcceleration().scale(1000)));
     a.draw(g, Color.green);
   }
