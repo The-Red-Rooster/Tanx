@@ -106,14 +106,15 @@ public class Tank extends PhysicsEntity {
     return LineSegment.approximation(new Vector[] {tankBottomLeft, tankBottomRight}).translate(tankBottomFromCenter);
   }
   private LineSegment calculateNearestTerrainSlope(Terrain terrain) {
-    int visionThreshold = 200;
+    int visionForwardThreshold = 20;
+    int visionBackwardThreshold = 50;
     int downwardRayCount = 2;
     LineSegment tankBottom = this.bottomEdge();
     Vector terrainBoundary[] = new Vector[downwardRayCount];
     Vector step = tankBottom.getDirection().scale(TANK_WIDTH/(downwardRayCount-1));
     Vector current = tankBottom.start;
     for (int i = 0; i < downwardRayCount; i++) {
-      Vector collisionPoint = terrain.nearestEdgeForwardOrBackward(current, Terrain.Direction.DOWN, visionThreshold);
+      Vector collisionPoint = terrain.nearestEdgeForwardOrBackward(current, Terrain.Direction.DOWN, visionForwardThreshold, visionBackwardThreshold);
       terrainBoundary[i] = collisionPoint;
       current = current.add(step);
     }
@@ -121,12 +122,9 @@ public class Tank extends PhysicsEntity {
     
   }
   private void calculateRotation(int delta, Terrain terrain) {
-//    double oldRotation = this.getRotation();
-    this.setRotation(0);
     LineSegment tankBottom = this.bottomEdge();
     nearestTerrainSlope = calculateNearestTerrainSlope(terrain);
     if (nearestTerrainSlope == null) {
-//      this.setRotation(oldRotation); // consider using zero to level out
       return;
     }
     
@@ -223,7 +221,7 @@ public class Tank extends PhysicsEntity {
     LineSegment v = new LineSegment(getPosition(), this.getPosition().add(this.getVelocity().scale(1000)));
     v.draw(g, Color.lightGray);
     LineSegment a = new LineSegment(getPosition(), this.getPosition().add(this.getAcceleration().scale(1000)));
-    a.draw(g, Color.red);
+    a.draw(g, Color.green);
   }
 
   //set/get functions

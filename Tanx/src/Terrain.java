@@ -281,18 +281,16 @@ public class Terrain extends PhysicsEntity {
 	  }
 	  return start.add(vectorForDirection(direction).scale(distance));
 	}
-	public Vector nearestEdgeForwardOrBackward(Vector start, Direction direction, int maxDistance) {
+	public Vector nearestEdgeForwardOrBackward(Vector start, Direction direction, int maxForwardDistance, int maxBackwardDistance) {
 	  Predicate<TerrainType> isEmpty = (t) -> t == TerrainType.OPEN;
 	  Predicate<TerrainType> isNotEmpty = (t) -> t != TerrainType.OPEN;
     int distance = this.firstWhere(start, direction, isNotEmpty);
-    if (distance > maxDistance) {
+    if (distance > maxForwardDistance) {
       return null;
     }
-    System.out.println("Ray length forward: " + distance);
     if (distance <= 0) {
       distance = this.firstWhere(start, opposite(direction), isEmpty);
-      System.out.println("Ray length backward: " + distance);
-      if (distance > maxDistance) {
+      if (distance > maxBackwardDistance) {
         return null;
       }
       return start.add(vectorForDirection(opposite(direction)).scale(distance));
