@@ -2,8 +2,6 @@ import jig.ConvexPolygon;
 import jig.Vector;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
-import org.newdawn.slick.geom.Shape;
-import org.newdawn.slick.geom.Transform;
 
 enum Direction {LEFT, RIGHT, NONE};
 
@@ -41,37 +39,43 @@ class LineSegment {
 
 public class Tank extends PhysicsEntity {
   //Constants
+  public static final float INF_HEALTH = -9999;
   public static final int INIT_TANK_HEALTH = 100;
+  public static final int MAX_TANK_HEALTH = 100;
   public static final float TANK_MOVE_SPEED = .2f;
   public static final float ACCELERATION = .5f;
-  public static final float JUMP_SPEED = .5f;
+  public static final float TANK_TERMINAL_VELOCITY = 2f;
+  public static final Vector ACCELERATION_JETS = new Vector(0, -.0015f);
   public static final float TANK_WIDTH = 64f;
   public static final float TANK_HEIGHT = 32f;
-  
+
   //Class Variables
-  private int health;
   private Cannon cannon;
   private boolean onGround;
   private Player myPlayer;
+  private Healthbar healthbar;
+  private boolean invuln;
   
   private LineSegment nearestTerrainSlope;
 
-
   public Tank(final float x, final float y, Color c, Player player){
-    super(x,y, 0, new Vector(TANK_MOVE_SPEED, 100));
+    super(x,y, 0, new Vector(TANK_MOVE_SPEED, TANK_TERMINAL_VELOCITY));
     setVelocity(new Vector(0, 0));
     setAcceleration(new Vector(0,0));
 
-    setHealth(INIT_TANK_HEALTH);
-    cannon = new Cannon(this.getX(), this.getY());
+    healthbar = new Healthbar(INIT_TANK_HEALTH);
+    cannon = new Cannon(x, y, Cannon.BASE_CANNON);
     myPlayer = player;
-    this.addShape(new ConvexPolygon(TANK_WIDTH, TANK_HEIGHT), c, Color.red);
+    
+    this.addShape(new ConvexPolygon(64f, 32f), c, Color.red);
+    invuln = false;
   }
 
-  public Projectile fire(int power){
-	  this.move(Direction.NONE);
-	  return cannon.fire(power);
+  public Projectile fire(float power){
+    myPlayer.giveAmmo(cannon.getType(), -1);
+    return cannon.fire(power);
   }
+
   public void rotate(Direction direction, int delta){cannon.rotate(direction, delta);}
 
   public void move(Direction direction){
@@ -85,9 +89,8 @@ public class Tank extends PhysicsEntity {
 //    setAcceleration(getAcceleration());
   }
 
-  //NEED REWORK TO JUMPJETS
-  public void jump(){
-      setVelocity(new Vector(getVelocity().getX(), JUMP_SPEED));
+  public void jet(int delta){
+    setVelocity(getVelocity().add(ACCELERATION_JETS.scale(delta)));
   }
 
   public void update(int delta){
@@ -223,7 +226,13 @@ public class Tank extends PhysicsEntity {
   @Override
   public void render(Graphics g) {
     super.render(g);
+    cannon.setX(this.getX());
+    cannon.setY(this.getY());
     cannon.render(g);
+    
+    float bottomSpacing = 20;
+    healthbar.render(g, this.getCoarseGrainedMaxY() + bottomSpacing, this.getX());
+    
     
     if (nearestTerrainSlope != null) {
       nearestTerrainSlope.draw(g, Color.orange);
@@ -238,12 +247,37 @@ public class Tank extends PhysicsEntity {
     LineSegment a = new LineSegment(getPosition(), this.getPosition().add(this.getAcceleration().scale(1000)));
     a.draw(g, Color.green);
   }
+  public void changeWeapon(int type){
+    cannon.changeType(type);
+  }
 
+  
+  public void giveHealth(int amount) {
+    healthbar.receiveHealth(amount);
+  }
+  public void takeDamage(int amount) {
+    if (!invuln) healthbar.receiveDamage(amount);
+  }
+  @Override
+  public boolean getIsDead() {
+    return healthbar.getIsDead();
+  }
+  
   //set/get functions
-  public void takeDmg(int dmg){ this.health -= dmg; }
-  public int getHealth() {return health;}
-  public void setHealth(int health) {this.health = health;}
-  public void setOnGround(boolean onGround) {this.onGround = onGround;}
-  public boolean isOnGround() {return onGround;}
-  public Player getMyPlayer() {return myPlayer;}
+  public void setOnGround(boolean onGround) { this.onGround = onGround; }
+  public boolean isOnGround() { return onGround; }
+  public Player getMyPlayer() { return myPlayer; }
+
+  //tank cheat handlers
+  public void toggleInfHealth() {
+    invuln = !invuln;
+  }
+
+  public boolean isInfHealth() {
+    return invuln;
+  }
+
+  public void killTank() {
+    healthbar.receiveDamage(healthbar.health);
+  }
 }

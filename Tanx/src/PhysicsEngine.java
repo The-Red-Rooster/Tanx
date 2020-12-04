@@ -1,8 +1,10 @@
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 import jig.Collision;
-import jig.Shape;
+import java.util.function.Consumer;
+
+import jig.ConvexPolygon;
+import jig.Entity;
 import jig.Vector;
 
 interface CollisionHandler<A extends PhysicsEntity, B extends PhysicsEntity> {
@@ -52,6 +54,15 @@ public class PhysicsEngine {
 	public void removePhysicsEntity(PhysicsEntity e) {
     objects.remove(e);
   }
+	public void forEachEntityInCircle(Vector center, float radius, Consumer<PhysicsEntity> action) {
+	  Entity area = new Entity(center.getX(), center.getY());
+	  area.addShape(new ConvexPolygon(radius));
+	  objects.forEach((e) -> {
+	    if (area.collides(e) != null) {
+	      action.accept(e);
+	    }
+	  });
+	}
 	
 	public <A extends PhysicsEntity, B extends PhysicsEntity> 
 	void registerCollisionHandler(Class<A> aClass, Class<B> bClass, CollisionHandler<A,B> handler) {
@@ -63,12 +74,37 @@ public class PhysicsEngine {
 		objects.forEach((n) -> applyPhysics(n, delta));
 
 		applyCollisionDetection(delta);
-		
-		objects.removeIf(e -> e.getIsDead() || !world.geometry.tilesArea.contains(e.getX(), e.getY()));
+
+    checkObjectBounds();
+		objects.removeIf(e -> e.getIsDead() );
 
 	}
-	
-	private void applyPhysics(PhysicsEntity e, int delta) {	//still needs to handle collisions
+
+  private void checkObjectBounds() {
+	  final float OUT_BOUNDS_LENGTH = 100f;
+
+	  //check that tank doesn't go past allowed x values
+    for (PhysicsEntity e: objects) {
+      if (Tank.class.isInstance(e)){
+        float minX = e.getCoarseGrainedMinX();
+        float maxX = e.getCoarseGrainedMaxX();
+        if (minX <= world.worldBounds.getMinX()){
+          e.setX(world.worldBounds.getMinX() + Math.abs(minX));
+        } else if (maxX >= world.worldBounds.getMaxX()){
+          e.setX(world.worldBounds.getMaxX() - Math.abs(maxX));
+        }
+      }
+
+      //check that object hasn't left our world completely
+      if ((e.getX() <= (world.worldBounds.getMinX() - OUT_BOUNDS_LENGTH))
+          || (e.getX() >= (world.worldBounds.getMaxX() + OUT_BOUNDS_LENGTH))
+          || (e.getY() >= (world.worldBounds.getMaxY() + OUT_BOUNDS_LENGTH))) {
+        e.isDead = true;
+      }
+    }
+  }
+
+  private void applyPhysics(PhysicsEntity e, int delta) {	//still needs to handle collisions
 		Vector A = e.getAcceleration();	//get movement acceleration
 //		System.out.println("incoming" + A);
 		A = applyGravity(A);	//add gravity to acceleration
@@ -100,34 +136,6 @@ public class PhysicsEngine {
 //			resolveTerrainCollision(delta, entity, world.terrain);
 //			collisionHandlers.forEach(handler -> handler.handleCollision(entity, world.terrain, null));
 		}
-	}
-	
-	private void resolveTerrainCollision(int delta, PhysicsEntity e, Terrain t) {
-		
-		boolean flag = true;
-		Shape s = e.getShapes().getFirst();
-		
-		if(e.getVelocity().getX() > 0) {	//going right
-			//check terrain to the right
-			if(world.terrain.checkLineCollision(new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() - s.getHeight()/2), new Vector(e.getX() + s.getWidth()/2 + 1, e.getY() + s.getHeight()/4))) {
-				flag = false;
-			}
-		} else if(e.getVelocity().getX() < 0) {	//going left
-			//check terrain to the left
-			if(world.terrain.checkLineCollision(new Vector(e.getX() - s.getWidth()/2 - 1, e.getY() - s.getHeight()/2), new Vector(e.getX() - s.getWidth()/2 - 1, e.getY()  + s.getHeight()/4))) {
-				flag = false;
-			}
-		} 
-		
-		if(flag) {	//setY up until no longer colliding
-			while(world.terrain.checkRectangularCollision(new Vector(e.getX() - s.getWidth()/2, e.getY() - s.getHeight()/2 ), new Vector(e.getX() + s.getWidth()/2, e.getY() + s.getHeight()/2))) {
-				e.setY(e.getY() - 1);
-			}
-		} else {
-			resolveCollision(delta, e, world.terrain, null);
-		}
-		
-		
 	}
 	
 	private void checkCollision(int delta, PhysicsEntity a, PhysicsEntity b) {
