@@ -3,7 +3,6 @@ import java.util.function.Predicate;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.ImageBuffer;
 
-import jig.Entity;
 import jig.Vector;
 
 
@@ -323,6 +322,23 @@ public class Terrain extends PhysicsEntity {
     }
 
     return current;
+	}
+	
+	public RayPair surfaceDistanceRays(Vector start, Vector unitDirection) {
+	  System.out.println("Getting surface ray for " + start + ", " + unitDirection);
+    Vector tinyStep = unitDirection.getPerpendicular().scale(5);
+    
+    Vector firstStart = start.add(tinyStep);
+    Vector firstCollisionPoint = this.surfacePointForRay(firstStart, unitDirection);
+    if (firstCollisionPoint == null) { return null; }
+    
+    Vector secondStart = start.subtract(tinyStep);
+    Vector secondCollisionPoint = this.surfacePointForRay(secondStart, unitDirection);
+    if (secondCollisionPoint == null) { return null; }
+    
+    return new RayPair(
+        new LineSegment(firstStart, firstCollisionPoint), 
+        new LineSegment(secondStart, secondCollisionPoint));
 	}
 	
 	/*private void printMask() {	//this function is used for debugging, NEVER call it in practice, it prints info about each individual pixel
