@@ -5,38 +5,6 @@ import org.newdawn.slick.Graphics;
 
 enum Direction {LEFT, RIGHT, NONE};
 
-class LineSegment {
-  public final Vector start;
-  public final Vector end;
-  public LineSegment(final Vector start, final Vector end) {
-    this.start = start;
-    this.end = end;
-  }
-  public static LineSegment approximation(Vector points[]) {
-    if (points[0] == null) { return null; }
-    if (points[points.length-1] == null) { return null; }
-    return new LineSegment(points[0], points[points.length-1]);
-  }
-  
-  public void draw(Graphics g, Color color) {
-    g.setColor(color);
-    g.drawLine(start.getX(), start.getY(), end.getX(), end.getY());
-  }
-  
-  public Vector getDifference() {
-    return end.subtract(start);
-  }
-  public Vector getDirection() {
-    return getDifference().unit();
-  }
-  public LineSegment rotate(double radians) {
-    return new LineSegment(start.rotate(radians), end.rotate(radians));
-  }
-  public LineSegment translate(Vector delta) {
-    return new LineSegment(start.add(delta), end.add(delta));
-  }
-}
-
 public class Tank extends PhysicsEntity {
   //Constants
   public static final float INF_HEALTH = -9999;
@@ -55,8 +23,14 @@ public class Tank extends PhysicsEntity {
   private Player myPlayer;
   private Healthbar healthbar;
   private boolean invuln;
+  private double targetRotation;
   
+  private LineSegment terrainNormals[];
+  private LineSegment terrainBoundaryRays[];
+  private int shortestRaysIndexes[];
+  private Vector shortestNormals[];
   private LineSegment nearestTerrainSlope;
+  private LineSegment terrainNormal;
 
   public Tank(final float x, final float y, Color c, Player player){
     super(x,y, 0, new Vector(TANK_MOVE_SPEED, TANK_TERMINAL_VELOCITY));
@@ -97,6 +71,13 @@ public class Tank extends PhysicsEntity {
     cannon.setX(this.getX());
     cannon.setY(this.getY());
     cannon.updateOffset(this.getRotation());
+    
+    double ANGULAR_VELOCITY = 0.1;
+    double diff = this.getRotation()- targetRotation;
+    System.out.println("diff: " + diff);
+    if (Math.abs(diff) > ANGULAR_VELOCITY*delta) {
+      this.rotate(-Math.signum(diff)*ANGULAR_VELOCITY*delta);
+    }
   }
   
   private LineSegment bottomEdge() {
@@ -108,10 +89,19 @@ public class Tank extends PhysicsEntity {
     Vector tankBottomRight = tankCenter.add(tankBottomDirection.scale(TANK_WIDTH/2));
     return LineSegment.approximation(new Vector[] {tankBottomLeft, tankBottomRight}).translate(tankBottomFromCenter);
   }
+  private LineSegment topEdge() {
+    Vector tankHorizontal = Vector.getUnit(this.getRotation());
+    Vector tankCenter = getPosition();
+    Vector tankTopFromCenter = tankHorizontal.getPerpendicular().scale(-TANK_HEIGHT/2);
+
+    Vector tankBottomLeft = tankCenter.subtract(tankHorizontal.scale(TANK_WIDTH/2));
+    Vector tankBottomRight = tankCenter.add(tankHorizontal.scale(TANK_WIDTH/2));
+    return new LineSegment(tankBottomLeft, tankBottomRight).translate(tankTopFromCenter);
+  }
   private LineSegment calculateNearestTerrainSlope(Terrain terrain) {
-    int visionForwardThreshold = 20;
-    int visionBackwardThreshold = 50;
-    int downwardRayCount = 2;
+    int visionForwardThreshold = 500;
+    int visionBackwardThreshold = 500;
+    int downwardRayCount = 5;
     LineSegment tankBottom = this.bottomEdge();
     Vector terrainBoundary[] = new Vector[downwardRayCount];
     Vector step = tankBottom.getDirection().scale(TANK_WIDTH/(downwardRayCount-1));
@@ -123,6 +113,109 @@ public class Tank extends PhysicsEntity {
     }
     return LineSegment.approximation(terrainBoundary);
     
+  }
+  private LineSegment calculateNearestTerrainNormal(Terrain terrain) {
+//    int visionForwardThreshold = 500;
+//    int visionBackwardThreshold = 500;
+    int downwardRayCount = 6;
+    LineSegment tankTop = this.topEdge();
+//    LineSegment tankTop = new LineSegment(new Vector(this.getCoarseGrainedMinX(), this.getCoarseGrainedMinY()), new Vector(this.getCoarseGrainedMaxX(), this.getCoarseGrainedMaxY()));
+    Vector terrainBoundary[] = new Vector[downwardRayCount];
+    Vector terrainNormals[] = new Vector[downwardRayCount/2];
+    this.terrainNormals = new LineSegment[downwardRayCount/2];
+    this.terrainBoundaryRays = new LineSegment[downwardRayCount];
+    this.shortestRaysIndexes = new int[] { -1, -1 };
+    Vector step = tankTop.getDirection().scale(TANK_WIDTH/(downwardRayCount/2-1));
+    Vector tinyStep = tankTop.getDirection().scale(5);
+    Vector current = tankTop.start;
+    Vector start = tankTop.start;
+    for (int i = 0; i < downwardRayCount; i++) {
+      if (i % 2 == 0) {
+        current = start.add(step.scale(i/2)).add(tinyStep);
+      } else {
+        current = start.add(step.scale(i/2));
+      }
+      Vector collisionPoint = terrain.surfacePointForRay(current, tankTop.getDirection().getPerpendicular());
+      terrainBoundary[i] = collisionPoint;
+      if (collisionPoint != null) {
+        terrainBoundaryRays[i] = new LineSegment(current, collisionPoint);
+      }
+    }
+    for (int i = 0; i < downwardRayCount; i += 2) {
+      if (terrainBoundary[i+1] == null || terrainBoundary[i] == null) {
+        continue;
+      }
+      if (shortestRaysIndexes[0] == -1) {
+        shortestRaysIndexes[0] = i;
+      } else if (terrainBoundaryRays[i].getDifference().lengthSquared() < terrainBoundaryRays[shortestRaysIndexes[0]].getDifference().lengthSquared()) {
+        shortestRaysIndexes[1] = shortestRaysIndexes[0];
+        shortestRaysIndexes[0] = i;
+      } else if (shortestRaysIndexes[1] == -1) {
+        shortestRaysIndexes[1] = i;
+      } else if (terrainBoundaryRays[i].getDifference().lengthSquared() < terrainBoundaryRays[shortestRaysIndexes[1]].getDifference().lengthSquared()) {
+        shortestRaysIndexes[1] = i;
+      }
+    }
+    shortestNormals = new Vector[2];
+    Vector contactPoint = new Vector(0, 0);
+    
+    for (int i = 0; i < shortestRaysIndexes.length; i++) {
+      int rayIndex = shortestRaysIndexes[i];
+      if (rayIndex == -1) {
+        continue;
+      }
+      Vector normal = new LineSegment(terrainBoundary[rayIndex], terrainBoundary[rayIndex+1]).unitNormal();
+      contactPoint = avgVectors(new Vector[] { terrainBoundary[rayIndex], terrainBoundary[rayIndex+1] });
+      shortestNormals[i] = normal;
+      terrainNormals[rayIndex/2] = normal;
+      this.terrainNormals[rayIndex/2] = new LineSegment(contactPoint, contactPoint.add(normal));
+    }
+    Vector terrainNormal = avgVectors(shortestNormals);
+    this.terrainNormal = new LineSegment(contactPoint, contactPoint.add(terrainNormal.scale(50)));
+    
+    LineSegment maxPenetrationRay = terrainBoundaryRays[shortestRaysIndexes[0]]; // TODO: handle -1
+    float distanceToTerrain = maxPenetrationRay.getDifference().length() - TANK_HEIGHT;
+    
+    if (distanceToTerrain < 0) {
+      this.translate(maxPenetrationRay.getDirection().scale(distanceToTerrain));
+  //    this.applyFriction(delta, nearestTerrainSlope);
+      this.setVelocity(this.getVelocity().project(terrainNormal.getPerpendicular()));
+//      this.rotate(degrees);
+      double terrainAngle = Math.acos(terrainNormal.dot(new Vector(0, -1))) * 180.0/Math.PI;
+
+      if(new Vector(0, -1).dot(terrainNormal.getPerpendicular()) > 0) {
+        terrainAngle = -terrainAngle;
+      }
+      System.out.println("terrainNormal angle: " + terrainAngle + ", tank: " + this.getRotation());
+      assert(terrainAngle <= 90);
+      this.targetRotation = terrainAngle;
+//      this.setRotation(rotationToNormal(terrainNormal));
+  //    this.setRotation(terrainNormal.getDirection().angleTo(tankBottom.getDirection().getPerpendicular())+180);
+  //    this.setVelocity(this.getVelocity().add(translation));
+    }
+//    for (int i = 0; i < downwardRayCount; i += 2) {
+//      if (terrainBoundary[i+1] == null ||terrainBoundary[i] == null) {
+//        continue;
+//      }
+//      terrainNormals[i/2] = new LineSegment(terrainBoundary[i], terrainBoundary[i+1]).unitNormal();
+//      this.terrainNormals[i/2] = new LineSegment(terrainBoundary[i+1], terrainBoundary[i+1].add(terrainNormals[i/2]));
+//    }
+//    Vector terrainNormal = avgVectors(terrainNormals);
+    Vector terrainSurfacePoint = avgVectors(terrainBoundary);
+    return new LineSegment(terrainSurfacePoint, terrainSurfacePoint.add(terrainNormal));
+    // TODO: watch for null
+    
+  }
+  private double rotationToNormal(Vector normal) {
+    return (normal.angleTo(new Vector(0, -1)));
+  }
+  private Vector avgVectors(Vector vs[]) {
+    if (vs.length <= 0) { return null; }
+    Vector sum = new Vector(0, 0);
+    for (Vector v : vs) {
+      sum = sum.add(v);
+    }
+    return sum.scale(1.0f/(float)vs.length);
   }
   private void calculateRotation(int delta, Terrain terrain) {
     LineSegment tankBottom = this.bottomEdge();
@@ -143,10 +236,11 @@ public class Tank extends PhysicsEntity {
     float normalVelocityFactor = vNormal.length();
     Vector friction = vParallel.negate().setLength(mue*normalVelocityFactor*delta).clampLength(0, vParallel.length());
     this.setVelocity(this.getVelocity().add(friction));
-    System.out.println("Friction: " + friction + ", parallel: " + vParallel);
+//    System.out.println("Friction: " + friction + ", parallel: " + vParallel);
     debugFriction = friction;
   }
   private void calculateTranslation(int delta, Terrain terrain) {
+    calculateNearestTerrainNormal(terrain);
     nearestTerrainSlope = calculateNearestTerrainSlope(terrain);
     if (nearestTerrainSlope == null) { return; }
     LineSegment tankBottom = this.bottomEdge(); // recalculate based on new rotation.
@@ -154,18 +248,23 @@ public class Tank extends PhysicsEntity {
     Vector rightDistance = tankBottom.end.subtract(nearestTerrainSlope.end);
     Vector avgDistance = leftDistance.add(rightDistance).scale(-0.5f);
     
-    Vector translation = avgDistance;//.project(nearestTerrainSlope.getDirection().getPerpendicular());
+    Vector translation = avgDistance;
+//    Vector translation = this.getVelocity().project(terrainNormal.getDirection());//.project(nearestTerrainSlope.getDirection().getPerpendicular());
     // not quite working yet...
-    System.out.println("Translation: " + translation);
-    if (translation.lengthSquared() < 30*30) {
-      this.translate(translation);
-      this.applyFriction(delta, nearestTerrainSlope);
-      this.setVelocity(this.getVelocity().project(nearestTerrainSlope.getDirection()));
+//    System.out.println("Translation: " + translation);
+    double maxTranslationSquared = 10*10;
+    if (translation.lengthSquared() < maxTranslationSquared) {
+//      this.translate(translation);
+//      this.applyFriction(delta, nearestTerrainSlope);
+//      this.setVelocity(this.getVelocity().project(nearestTerrainSlope.getDirection()));
+//      this.setRotation(terrainNormal.getDirection().angleTo(tankBottom.getDirection().getPerpendicular())+180);
+//      this.setVelocity(this.getVelocity().add(translation));
     }
   }
   public boolean checkTerrainCollision(int delta, Terrain terrain) {
-    calculateRotation(delta, terrain);
     calculateTranslation(delta, terrain);
+
+//    calculateRotation(delta, terrain);
     
     return false; // we handled it ourselves, don't let others handle it.
   }
@@ -229,24 +328,49 @@ public class Tank extends PhysicsEntity {
     cannon.setX(this.getX());
     cannon.setY(this.getY());
     cannon.render(g);
-    
+
     float bottomSpacing = 20;
     healthbar.render(g, this.getCoarseGrainedMaxY() + bottomSpacing, this.getX());
     
+    //renderDebugRays(g);
+  }
     
+  private void renderDebugRays(Graphics g) {
+
     if (nearestTerrainSlope != null) {
       nearestTerrainSlope.draw(g, Color.orange);
       this.bottomEdge().draw(g, Color.green);
     }
-    LineSegment v = new LineSegment(getPosition(), this.getPosition().add(this.getVelocity().scale(1000)));
-    v.draw(g, Color.lightGray);
-    if (debugFriction != null) {
-      LineSegment f = new LineSegment(getPosition(), this.getPosition().add(this.debugFriction.scale(1000)));
-      f.draw(g, Color.red);
+    if (terrainNormal != null) {
+      new LineSegment(terrainNormal.start, terrainNormal.start.add(terrainNormal.getDirection().setLength(30))).draw(g, Color.pink);
+//      for (LineSegment normal : terrainNormals) {
+//        if (normal != null) {
+//          new LineSegment(normal.start, normal.start.add(normal.getDirection().setLength(30))).draw(g, Color.magenta);
+//        }
+//      }
+//      for (LineSegment ray : terrainBoundaryRays) {
+//        if (ray != null) {
+//          ray.draw(g, Color.orange);
+//        }
+//      }
+      for (int i : shortestRaysIndexes) {
+        if (i == -1) {
+          continue;
+        }
+        terrainBoundaryRays[i].draw(g, Color.red);
+      }
     }
-    LineSegment a = new LineSegment(getPosition(), this.getPosition().add(this.getAcceleration().scale(1000)));
-    a.draw(g, Color.green);
+//    LineSegment v = new LineSegment(getPosition(), this.getPosition().add(this.getVelocity().scale(1000)));
+//    v.draw(g, Color.lightGray);
+//    if (debugFriction != null) {
+//      LineSegment f = new LineSegment(getPosition(), this.getPosition().add(this.debugFriction.scale(1000)));
+//      f.draw(g, Color.red);
+//    }
+//    LineSegment a = new LineSegment(getPosition(), this.getPosition().add(this.getAcceleration().scale(1000)));
+//    a.draw(g, Color.green);
+  
   }
+  
   public void changeWeapon(int type){
     cannon.changeType(type);
   }

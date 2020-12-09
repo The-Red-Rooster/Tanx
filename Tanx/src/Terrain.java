@@ -297,6 +297,34 @@ public class Terrain extends PhysicsEntity {
     }
     return start.add(vectorForDirection(direction).scale(distance));
   }
+	private boolean isInBounds(Vector point) {
+	  return point.getX() >= 0 || point.getX() < width || point.getY() >= 0 || point.getY() < height;
+	}
+	
+	public Vector surfacePointForRay(Vector start, Vector unitDirection) {
+    Predicate<TerrainType> isEmpty = (t) -> t == TerrainType.OPEN;
+    Predicate<TerrainType> isNotEmpty = (t) -> t != TerrainType.OPEN;
+    
+    Vector current = start;
+    while (checkPointCollision(current, isEmpty)) {
+      current = current.add(unitDirection);
+      if (!this.isInBounds(current)) {
+        // no terrain below, so check above
+        current = start;
+        while (checkPointCollision(current, isNotEmpty)) {
+          current = current.subtract(unitDirection);
+          if (!this.isInBounds(current)) { 
+            // no terrain above
+            return null;
+          }
+          break;
+        }
+      }
+    }
+
+    return current;
+	}
+	
 	/*private void printMask() {	//this function is used for debugging, NEVER call it in practice, it prints info about each individual pixel
 		for(int x = 0; x < width; x++) {
 			for(int y = 0; y < height; y++) {
