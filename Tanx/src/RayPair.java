@@ -18,10 +18,20 @@ class RayPair {
     return (first.getDifference().length() + second.getDifference().length())/2;
   }
   Vector surfaceNormal() {
-    return new LineSegment(second.end, first.end).unitNormal();
+    return surface().unitNormal();
+  }
+  LineSegment surface() {
+    return new LineSegment(second.end, first.end);
+  }
+  LineSegment debugSurfaceNormalLine() {
+    Vector avgEnd = surface().center();
+    float length = 30;
+    return LineSegment.offset(avgEnd, surfaceNormal().scale(length));
   }
   public void draw(Graphics g, Color color) {
     first.draw(g, color);
     second.draw(g, color);
+    debugSurfaceNormalLine().draw(g, color);
+    surface().draw(g, color);
   }
 }

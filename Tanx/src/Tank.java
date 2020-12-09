@@ -26,11 +26,8 @@ public class Tank extends PhysicsEntity {
   private double targetRotation = 0;
   
   static boolean showDebugRays = false;
-  private LineSegment terrainNormals[];
-  private RayPair terrainBoundaryRays[];
-  private int shortestRaysIndexes[];
-  private Vector shortestNormals[];
-  private LineSegment nearestTerrainSlope;
+  private RayPair debugTerrainBoundaryRays[];
+  private int debugShortestRaysIndexes[];
   private Vector debugTerrainNormal;
   private Vector debugFriction;
 
@@ -130,19 +127,11 @@ public class Tank extends PhysicsEntity {
   private void calculateTranslation(int delta, Terrain terrain) {
     int downwardRayCount = 3;
     
-    Vector terrainNormals[] = new Vector[downwardRayCount];
-    this.terrainNormals = new LineSegment[downwardRayCount];
-    this.shortestRaysIndexes = new int[] { -1, -1 };
+    RayPair terrainBoundaryRays[] = this.calculateTerrainRays(terrain, downwardRayCount);
+    this.debugTerrainBoundaryRays = terrainBoundaryRays;
     
-    this.terrainBoundaryRays = this.calculateTerrainRays(terrain, downwardRayCount);
-    
-    Vector terrainBoundary[] = new Vector[downwardRayCount];
-    for (int i = 0; i < downwardRayCount; i++) {
-      terrainBoundary[i] = terrainBoundaryRays[i].first.end; // Consider avg
-    }
-    
-    shortestRaysIndexes = indexesOfShortest(terrainBoundaryRays);
-    shortestNormals = new Vector[2];
+    int shortestRaysIndexes[] = indexesOfShortest(terrainBoundaryRays);
+    Vector shortestNormals[] = new Vector[2];
     
     for (int i = 0; i < shortestRaysIndexes.length; i++) {
       int rayIndex = shortestRaysIndexes[i];
@@ -150,15 +139,17 @@ public class Tank extends PhysicsEntity {
         continue;
       }
       Vector normal = terrainBoundaryRays[rayIndex].surfaceNormal();
-//      Vector contactPoint = avgVectors(new Vector[] { terrainBoundary[rayIndex], terrainBoundary[rayIndex+1] });
       shortestNormals[i] = normal;
-      terrainNormals[rayIndex] = normal;
-//      this.terrainNormals[rayIndex] = new LineSegment(contactPoint, contactPoint.add(normal));
     }
+    this.debugShortestRaysIndexes = shortestRaysIndexes;
+
     Vector terrainNormal = avgVectors(shortestNormals);
-    debugTerrainNormal = terrainNormal;
+    this.debugTerrainNormal = terrainNormal;
     
-    RayPair maxPenetrationRay = terrainBoundaryRays[shortestRaysIndexes[0]]; // TODO: handle -1
+    if (shortestRaysIndexes[0] == -1) {
+      return; // no rays at all.
+    }
+    RayPair maxPenetrationRay = terrainBoundaryRays[shortestRaysIndexes[0]];
     float distanceToTerrain = maxPenetrationRay.avgLength() - TANK_HEIGHT;
     
     if (distanceToTerrain < 0) {
@@ -170,8 +161,8 @@ public class Tank extends PhysicsEntity {
   }
   private int[] indexesOfShortest(RayPair lines[]) {
     int k = 2;
-    int bestIndexes[] = new int[k];
-    float bestLengthSqs[] = new float[k];
+    int bestIndexes[] = new int[] { -1, -1 };
+    float bestLengthSqs[] = new float[] { Float.MAX_VALUE, Float.MAX_VALUE };
     for (int i = 0; i < k; i++) { bestIndexes[i] = -1; }
     for (int i = 0; i < lines.length; i++) {
       float lengthSq = lines[i].avgLengthSquared();
@@ -200,7 +191,6 @@ public class Tank extends PhysicsEntity {
     if(vertical.dot(slopeNormal.getPerpendicular()) > 0) {
       terrainAngle = -terrainAngle;
     }
-    System.out.println("terrainNormal angle: " + terrainAngle + ", tank: " + this.getRotation());
     
     this.targetRotation = terrainAngle;
   }
@@ -220,7 +210,6 @@ public class Tank extends PhysicsEntity {
     float normalVelocityFactor = vNormal.length();
     Vector friction = vParallel.negate().setLength(mue*normalVelocityFactor*delta).clampLength(0, vParallel.length());
     this.setVelocity(this.getVelocity().add(friction));
-//    System.out.println("Friction: " + friction + ", parallel: " + vParallel);
     debugFriction = friction;
   }
   
@@ -247,36 +236,25 @@ public class Tank extends PhysicsEntity {
     
   private void renderDebugRays(Graphics g) {
 
-    if (nearestTerrainSlope != null) {
-      nearestTerrainSlope.draw(g, Color.orange);
-      this.bottomEdge().draw(g, Color.green);
-    }
+    this.bottomEdge().draw(g, Color.green);
+    
     if (debugTerrainNormal != null) {
-      new LineSegment(getPosition(), getPosition().add(debugTerrainNormal.setLength(30))).draw(g, Color.pink);
-//      for (LineSegment normal : terrainNormals) {
-//        if (normal != null) {
-//          new LineSegment(normal.start, normal.start.add(normal.getDirection().setLength(30))).draw(g, Color.magenta);
-//        }
-//      }
-//      for (LineSegment ray : terrainBoundaryRays) {
-//        if (ray != null) {
-//          ray.draw(g, Color.orange);
-//        }
-//      }
-      for (int i : shortestRaysIndexes) {
+      LineSegment.offset(getPosition(), debugTerrainNormal.setLength(30)).draw(g, Color.pink);
+
+      for (int i : debugShortestRaysIndexes) {
         if (i == -1) {
           continue;
         }
-        terrainBoundaryRays[i].draw(g, Color.red);
+        this.debugTerrainBoundaryRays[i].draw(g, Color.red);
       }
     }
-    LineSegment v = new LineSegment(getPosition(), this.getPosition().add(this.getVelocity().scale(1000)));
+    LineSegment v = LineSegment.offset(getPosition(), this.getVelocity().scale(1000));
     v.draw(g, Color.lightGray);
     if (debugFriction != null) {
-      LineSegment f = new LineSegment(getPosition(), this.getPosition().add(this.debugFriction.scale(1000)));
+      LineSegment f = LineSegment.offset(getPosition(), this.debugFriction.scale(1000));
       f.draw(g, Color.red);
     }
-    LineSegment a = new LineSegment(getPosition(), this.getPosition().add(this.getAcceleration().scale(1000)));
+    LineSegment a = LineSegment.offset(getPosition(), this.getAcceleration().scale(1000));
     a.draw(g, Color.green);
   
   }
