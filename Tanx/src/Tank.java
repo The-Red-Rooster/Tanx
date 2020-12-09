@@ -23,7 +23,7 @@ public class Tank extends PhysicsEntity {
   private Player myPlayer;
   private Healthbar healthbar;
   private boolean invuln;
-  private double targetRotation;
+  private double targetRotation = 0;
   
   static boolean showDebugRays = false;
   private LineSegment terrainNormals[];
@@ -74,14 +74,27 @@ public class Tank extends PhysicsEntity {
     cannon.setY(this.getY());
     cannon.updateOffset(this.getRotation());
     
-    double ANGULAR_VELOCITY = 0.1;
-    double diff = targetRotation - this.getRotation();
-    System.out.println("diff: " + diff);
-    if (diff > 0) {
-      this.rotate(Math.min(ANGULAR_VELOCITY*delta, diff));
-    } else if (diff < 0) {
-      this.rotate(Math.max(-ANGULAR_VELOCITY*delta, diff));
+    this.rotate(this.velocityToward(clampDouble(targetRotation, -90, 90), 0.3, delta));
+  }
+  private double clampDouble(double value, double min, double max) {
+    double v = value;
+    if (v < min) {
+      v = min;
     }
+    if (v > max) {
+      v = max;
+    }
+    return v;
+  }
+  private double velocityToward(double angle, double velocity, int delta) {
+    double diff = angle - this.getRotation();
+    double rotationVelocity = 0;
+    if (diff > 0) {
+      rotationVelocity = Math.min(velocity*delta, diff);
+    } else if (diff < 0) {
+      rotationVelocity = Math.max(-velocity*delta, diff);
+    }
+    return rotationVelocity;
   }
   
   private LineSegment bottomEdge() {
