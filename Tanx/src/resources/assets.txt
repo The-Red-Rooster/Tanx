@@ -1,0 +1,44 @@
+//== ASSETS.TXT ==\\
+This is a text file that provides what assets are inside the resources folder for Tanx. These resources are required to play the game. Included are different colored tank sprites, terrain tiles, and sound effects for the game.
+
+//== CREDITS ==\\
+
+//Sprites/graphics:
+Tank sprites - Created by Henry Unruh
+Terrain tiles - Created by Henry Unruh
+Projectile sprites - Created by Henry Unruh
+Logo - Created by Henry Unruh
+UI elements - Created by Matt Schofield, Henry Unruh
+Background scene sprites - Created by Henry Unruh
+Mountain Maker Splat Animation - Created by Benjamin Eavenson
+Ice Bomb Animation - Created by Benjamin Eavenson
+
+//Audio/sounds
+Bow Fire - "Bow Fire Arrow Sound" by Stephan Schutze
+LINK: http://soundbible.com/1780-Bow-Fire-Arrow.html
+
+Cannon Fire - "Shot Gun Sounds" by luminalace
+LINK: http://soundbible.com/1706-Shot-Gun.html
+
+Machine Gun Fire - "Uzi Shooting Sounds" by Snottyboi
+LINK: http://soundbible.com/1371-Uzi-Shooting.html
+
+Laser Cannon Fire- "Laser Cannon Sounds" by Mike Koenig
+LINK: http://soundbible.com/1771-Laser-Cannon.html
+
+Laser Machine Gun Fire - "Laser Machine Gun Sounds" by Mike Koenig
+LINK: http://soundbible.com/1774-Laser-Machine-Gun.html
+
+Mountain Maker Splat - "Slat_ish.WAV" by Benboncan
+LINK: https://freesound.org/people/Benboncan/sounds/147541/
+
+Ice Bomb Explosion - "Freeze Cast" by JustInvoke
+LINK: https://freesound.org/people/JustInvoke/sounds/446144/
+
+MUSIC - Album: Songs from an Unmade World 2,
+Artist - Visager
+Tanx! Theme/Main Menu Theme > Visager - Welcome Player[loop]
+Options Menu > Visager - Royal Entrance[loop]
+In-game music > Visager - Battle! [loop]
+
+LINK: https://freemusicarchive.org/music/Visager/Songs_From_An_Unmade_World_2#

@@ -2,6 +2,7 @@ import org.newdawn.slick.Graphics;
 import org.newdawn.slick.Color;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 public class Player {
   public static final float MAX_FUEL_BURNTIME = 2*1000;
@@ -26,6 +27,7 @@ public class Player {
     ammo = new ArrayList<Ammo>();
     giveAmmo(Cannon.BASE_CANNON, Ammo.INF_AMMO);
     giveAmmo(Cannon.BIG_CANNON, 10);
+    giveAmmo(Cannon.CLUSTER_CANNON, 10);
     ammoIndex = 0;
     infFuel = false;
     maxChargedPower = TIME_TO_CHARGE;
@@ -142,8 +144,8 @@ public class Player {
     getTank().rotate(d, delta);
   }
 
-  public Projectile fire(){
-    return getTank().fire(chargedPower/TIME_TO_CHARGE);
+  public void fire(Consumer<Projectile> spawnP){
+    getTank().fire(chargedPower/TIME_TO_CHARGE, spawnP);
   }
 
   public void getPrevTank() {
@@ -186,6 +188,8 @@ public class Player {
 
   public float getChargedPower() { return chargedPower; }
 
+  public Color getPlayerColor() { return playerColor; }
+
   //cheats
   public void giveAllWeapons() {
     giveAmmo(Cannon.BASE_CANNON, Ammo.INF_AMMO);
@@ -205,5 +209,9 @@ public class Player {
 
   public boolean isInfHealth() {
     return getTank().isInfHealth();
+  }
+
+  public Color getColor() {
+    return playerColor;
   }
 }

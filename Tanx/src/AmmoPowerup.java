@@ -1,3 +1,4 @@
+import jig.ResourceManager;
 import org.newdawn.slick.Graphics;
 
 public class AmmoPowerup extends Powerup{
@@ -9,18 +10,13 @@ public class AmmoPowerup extends Powerup{
     super(x,y);
     type = cannonType;
     amount = num;
+    setSprite(ResourceManager.getImage(Tanx.AMMO_POWERUP_SPRITE));
   }
 
   @Override
   public void usePowerup(Tank t) {
     super.usePowerup(t);
     t.getMyPlayer().giveAmmo(type , amount);
-  }
-
-  @Override
-  public void render(Graphics g) {
-    super.render(g);
-    g.drawString(Integer.toString(amount), getX()-10, getY()-10);
   }
 
   @Override

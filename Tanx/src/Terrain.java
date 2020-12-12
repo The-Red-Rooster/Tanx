@@ -3,6 +3,9 @@ import java.util.function.Predicate;
 import org.newdawn.slick.Image;
 import org.newdawn.slick.ImageBuffer;
 
+import org.newdawn.slick.Color;
+
+import jig.ResourceManager;
 import jig.Vector;
 
 
@@ -13,6 +16,7 @@ public class Terrain extends PhysicsEntity {
 	private TerrainType mask[][];
 	private Image currentImage;
 	private ImageBuffer IB;
+	private Image baseImage;
 	
 	enum TerrainType{
 		OPEN,
@@ -28,8 +32,9 @@ public class Terrain extends PhysicsEntity {
 	
 	public Terrain(int w, int h, TerrainType t) {	//create a new terrain object completely of the specified type
 		super(w/2, h/2, 0, new Vector(0,0));
-		width = w;
+		baseImage = ResourceManager.getImage(Tanx.TERRAIN_IMG);
 		height = h;
+		width = w;
 		mask = new TerrainType[width][height];
 		for(int x = 0; x < mask.length; x++) {
 			for(int y = 0; y < mask[x].length; y++) {
@@ -42,6 +47,7 @@ public class Terrain extends PhysicsEntity {
 	
 	public Terrain(int w, int h, TerrainType m[][]) {	//make a new Terrain object from a given mask
 		super(w/2,h/2, 0, new Vector(0,0));
+		baseImage = ResourceManager.getImage(Tanx.TERRAIN_IMG);
 		height = h;
 		width = w;
 		mask = m;
@@ -55,10 +61,11 @@ public class Terrain extends PhysicsEntity {
 				
 				switch(mask[x][y]) {	//individually set every pixel in the image buffer according to the mask
 				case OPEN:
-					IB.setRGBA(x, y, 135, 88, 43, 0);
+					IB.setRGBA(x, y, 0, 0, 0, 0);
 					break;
 				case NORMAL:
-					IB.setRGBA(x, y, 135, 88, 43, 255);
+					Color pixel = baseImage.getColor(x%baseImage.getWidth(), y%baseImage.getHeight());
+					IB.setRGBA(x, y, pixel.getRed(), pixel.getGreen(), pixel.getBlue(), pixel.getAlpha());
 				}
 				
 			}

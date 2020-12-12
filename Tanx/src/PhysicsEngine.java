@@ -30,15 +30,19 @@ class TypeMatchingHandler<A extends PhysicsEntity, B extends PhysicsEntity> impl
     }
   }
 }
+interface CollisionPredicate {
+  boolean shouldCheckCollision(PhysicsEntity a, PhysicsEntity b);
+}
 
 public class PhysicsEngine {
 	
 	static public float GRAV_CONSTANT = .1f;
 	static public float NORMAL_FRICTION = .1f;
-	
+	static public int PHYSICS_TICK_LENGTH = 5;
 	
 	private ArrayList<PhysicsEntity> objects;
 	private ArrayList<CollisionHandler<PhysicsEntity, PhysicsEntity>> collisionHandlers;
+	private CollisionPredicate collisionPredicate;
 	private World world;
 	
 	
@@ -46,6 +50,7 @@ public class PhysicsEngine {
 		objects = o;
 		world = w;
 		collisionHandlers = new ArrayList<>();
+		collisionPredicate = (a, b) -> false;
 	}
 	
 	public void addPhysicsEntity(PhysicsEntity e) {
@@ -69,16 +74,29 @@ public class PhysicsEngine {
     collisionHandlers.add(new TypeMatchingHandler<A,B>(aClass, bClass, handler));
   }
 	
-	public void update(int delta) {
-		
-		objects.forEach((n) -> applyPhysics(n, delta));
-
-		applyCollisionDetection(delta);
-
-    checkObjectBounds();
-		objects.removeIf(e -> e.getIsDead() );
-
+	void setCollisionPredicate(CollisionPredicate p) {
+	  collisionPredicate = p;
 	}
+	CollisionPredicate getCollisionPredicate() {
+    return collisionPredicate;
+  }
+	
+  public void update(int delta) {
+    int steps = delta / PHYSICS_TICK_LENGTH;
+    for (int i = 0; i < steps; i++) {
+      updatePhysics(PHYSICS_TICK_LENGTH);
+    }
+    updatePhysics(delta % PHYSICS_TICK_LENGTH);
+  }
+	
+  private void updatePhysics(int delta) {
+    objects.forEach((n) -> applyPhysics(n, delta));
+    
+    applyCollisionDetection(delta);
+    
+    checkObjectBounds();
+    objects.removeIf(e -> e.getIsDead() );
+  }
 
   private void checkObjectBounds() {
 	  final float OUT_BOUNDS_LENGTH = 100f;
@@ -125,7 +143,9 @@ public class PhysicsEngine {
 	    for (int y = x+1; y < count; y++) {
 	      PhysicsEntity b = objects.get(y);
 	      if (a == b) { continue; }
-	      checkCollision(delta, a, b);
+	      if (collisionPredicate.shouldCheckCollision(a, b)) {
+	        checkCollision(delta, a, b);
+	      }
 	    }
 	    handlePotentialTerrainCollision(delta, a);
 	  }

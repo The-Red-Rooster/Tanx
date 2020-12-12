@@ -1,7 +1,12 @@
 import jig.ConvexPolygon;
+import jig.ResourceManager;
 import jig.Vector;
+import org.newdawn.slick.Animation;
 import org.newdawn.slick.Color;
 import org.newdawn.slick.Graphics;
+import org.newdawn.slick.Image;
+
+import java.util.function.Consumer;
 
 enum Direction {LEFT, RIGHT, NONE};
 
@@ -16,6 +21,9 @@ public class Tank extends PhysicsEntity {
   public static final Vector ACCELERATION_JETS = new Vector(0, -.0015f);
   public static final float TANK_WIDTH = 64f;
   public static final float TANK_HEIGHT = 32f;
+  public static final float TANK_SPRITE_SCALE = 3f;
+  private static final Vector TANK_MOUNT_OFFSET = new Vector(15, 0);
+  public static final float JET_OFFSET_Y = 40f;
 
   //Class Variables
   private Cannon cannon;
@@ -24,6 +32,11 @@ public class Tank extends PhysicsEntity {
   private Healthbar healthbar;
   private boolean invuln;
   private double targetRotation = 0;
+  private Image activeTankSprite;
+  private Image leftTankSprite;
+  private Image rightTankSprite;
+  private Effect jumpJetsEffect;
+  private int jumpJetsCD;
   
   static boolean showDebugRays = false;
   private RayPair debugTerrainBoundaryRays[];
@@ -39,31 +52,43 @@ public class Tank extends PhysicsEntity {
     healthbar = new Healthbar(INIT_TANK_HEALTH);
     cannon = new Cannon(x, y, Cannon.BASE_CANNON);
     myPlayer = player;
-    
-    this.addShape(new ConvexPolygon(64f, 32f), c, Color.red);
+    this.addShape(new ConvexPolygon(64f, 32f));
+    rightTankSprite = ResourceManager.getImage(Tanx.TANK_SPRITE);
+    rightTankSprite.setImageColor(c.r, c.g, c.b);
+    rightTankSprite = rightTankSprite.getScaledCopy(TANK_SPRITE_SCALE);
+    leftTankSprite = rightTankSprite.getFlippedCopy(true, false);
+    activeTankSprite = rightTankSprite;
     invuln = false;
+    jumpJetsEffect = new Effect(x, y, new Animation(
+        ResourceManager.getSpriteSheet(Tanx.FIRE_ANIMATION, 32, 32),
+        0, 0, 3, 3, true, 50, true));
+    jumpJetsEffect.setRotation(180);
+    jumpJetsEffect.setSound(Tanx.JET_SOUND, 150, .2f, .5f);
   }
 
-  public Projectile fire(float power){
+
+  public void fire(float power, Consumer<Projectile> spawnP){
     myPlayer.giveAmmo(cannon.getType(), -1);
-    return cannon.fire(power);
+    cannon.fire(power, spawnP);
   }
 
   public void rotate(Direction direction, int delta){cannon.rotate(direction, delta);}
 
   public void move(Direction direction){
     if (direction == Direction.LEFT){
+      activeTankSprite = leftTankSprite;
       setAcceleration(new Vector(-ACCELERATION, 0).rotate(this.getRotation()));
-    } else if(direction == Direction.RIGHT){
-      setAcceleration(new Vector(ACCELERATION, 0).rotate(this.getRotation()));
     } else {
-    	setAcceleration(new Vector(0, 0));
+      activeTankSprite = rightTankSprite;
+      setAcceleration(new Vector(ACCELERATION, 0).rotate(this.getRotation()));
     }
 //    setAcceleration(getAcceleration());
   }
 
   public void jet(int delta){
     setVelocity(getVelocity().add(ACCELERATION_JETS.scale(delta)));
+    jumpJetsCD = 100;
+    jumpJetsEffect.turnOnSound();
   }
 
   public void update(int delta){
@@ -72,7 +97,15 @@ public class Tank extends PhysicsEntity {
     cannon.updateOffset(this.getRotation());
     
     this.rotate(this.velocityToward(clampDouble(targetRotation, -90, 90), 0.3, delta));
+    
+    jumpJetsCD -= delta;
+    if (jumpJetsCD > 0) {
+      jumpJetsEffect.update(delta);
+    } else {
+      jumpJetsEffect.turnOffSound();
+    }
   }
+  
   private double clampDouble(double value, double min, double max) {
     double v = value;
     if (v < min) {
@@ -226,9 +259,14 @@ public class Tank extends PhysicsEntity {
       return;
     }
     super.render(g);
-    cannon.setX(this.getX());
-    cannon.setY(this.getY());
+    g.drawImage(activeTankSprite, getX() - activeTankSprite.getWidth()/2, getY() - activeTankSprite.getHeight()/2, myPlayer.getColor());
+    Vector cannonMount = TANK_MOUNT_OFFSET.rotate(getRotation()).add(getPosition());
+    cannon.setMountPoint(cannonMount);
     cannon.render(g);
+    
+    if (jumpJetsCD > 0){
+      jumpJetsEffect.render(g, getX(), getY() + JET_OFFSET_Y);
+    }
 
     float bottomSpacing = 20;
     healthbar.render(g, this.getCoarseGrainedMaxY() + bottomSpacing, this.getX());
