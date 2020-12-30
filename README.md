@@ -8,6 +8,11 @@ Tanx is a hotseat multiplayer game in which players take turns controlling one o
 
 The players take turns controlling one of their own tanks. Each turn they control a different tank and it changes sequentially. The current player can control the pitch of the cannon and shoot it. There will be a one shot per turn restriction. Players can cycle through different attacks using the keyboard. There will be power ups throughout the Battlefield that are gained by colliding with them.
 
+![Screenshot showing the Tanx title and a pixel art tank](screenshots/splash-screen.png)
+![Screenshot showing the user interface before a turn starts. There is a sandy world with several tanks where only one is in focus. Below the world there is a HUD that shows time left in the turn, weapons available, and fuel left for the jetpack.](screenshots/before-turn.png)
+![Screenshot showing the destructible terrain and fire due to weapons exploding](screenshots/fire-explosions.png)
+![Screenshot showing the mountain maker weapon that generates circles of terrain upon impact. Also shows the ice that was layed on impact from the ice cannon.](screenshots/mountain-maker-ice.png)
+
 ## How To Play
 - W - Raise cannon
 - S - Lower cannon
